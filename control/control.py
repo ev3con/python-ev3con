@@ -205,7 +205,7 @@ class MotorControl(object):
 	margin: Maximalwert Geschwindigkeit (mit Speedregulation)
 	motors: Dictionary mit den jeweiligen Motoren(value) und Ports(key)
 	"""
-	def __init__(self,avg_speed,all_ports=None,**kwargs):
+	def __init__(self,avg_speed,all_ports=None,inverted=False,**kwargs):
 		"""INIT-Argument: 
 			ports: Liste/String der Ports der anzuschliessenden Motoren(default:None -> Alle verfuegbaren werden angeschlossen 
 			avg_speed: Mittlere Geschwindigkeit an den Motoren
@@ -213,7 +213,7 @@ class MotorControl(object):
 		self.avg_speed=avg_speed
 		self.margin=2000 # 
 		self.motors = {}
-		self.inverted=False
+		self.inverted=inverted
 		if not all_ports :
 			self.attach_all_motors()
 		else:
@@ -235,7 +235,8 @@ class MotorControl(object):
 		ports= Portliste/string der anzusteuernden Motoren
 		"""
 		sp+=self.avg_speed
-		if self.inverted : sp=-sp
+		if self.inverted : 
+			sp = -sp
 		if sp > self.margin:
 			sp=self.margin
 		elif sp< -self.margin:
@@ -280,15 +281,15 @@ class TotalControl(MotorControl):
 	INIT-PARAM:
 	
 	"""
-	def __init__(self,dist_set,line_set,left_ports,right_ports,avg_speed,**kwargs):
+	def __init__(self,dist_set,line_set,motors_set,**kwargs):
 				
-		MotorControl.__init__(self,avg_speed)
+		MotorControl.__init__(self,**motors_set)
 				
 		self.left = []
 		self.right = []
-		for l in left_ports:
+		for l in motors_set['left_ports']:
 			self.left.append(l)
-		for r in right_ports:
+		for r in motors_set['right_ports']:
 			self.right.append(r)
 		self.line = LineKeep(**line_set)
 		self.dist = DistKeep(**dist_set)

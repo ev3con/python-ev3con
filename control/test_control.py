@@ -26,7 +26,7 @@ class TestOr(unittest.TestCase):
 		while(True):
 			l.update()
 			if k.up:break
-		cont=TotalControl(param_d,param_l,**param_m)
+		cont=TotalControl(param_d,param_l,param_m)
 		
 		cont.start()
 		print(cont.process_s.is_alive())
