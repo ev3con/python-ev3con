@@ -125,8 +125,6 @@ def stop_all_motors():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
-    parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )
-    parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )
     parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )           # Reflexionswert auf Hintergrund
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )            # Reflexionswert auf Linie
     parser.add_argument( "-distref", dest="distref", type=float, default=20.0 )         # Abstand in cm
