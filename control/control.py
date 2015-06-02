@@ -52,7 +52,7 @@ class PID(object):
 		returns: float
 		"""
 		clock=time.clock()
-		dt=(clock-self._clock_old)*1000 #da ansonsten sehr klein
+		dt=(clock-self._clock_old)*100000 #da ansonsten sehr klein
 		error=soll-ist 
 		#Integral
 		i=self._int_sum+error*dt
@@ -80,7 +80,7 @@ class PID(object):
 
 class DistKeep(UltrasonicSensor):
 	"""Berechnet die noetige Aenderung der Geschwindigkeit(dv) um einen konkreten Abstand(soll) einzuhalten"""
-	def __init__(self,soll,kp,ki=0,kd=0,port_us=-1,max_dist=2550,**kwargs):
+	def __init__(self,soll,port_us,kp,ki=0,kd=0,max_dist=2550,**kwargs):
 		"""
 		INIT-Argumente:
 		soll: gewollter Abstand
@@ -154,17 +154,18 @@ class BetterColorSensor(ColorSensor):
 	
 class LineKeep(BetterColorSensor):
 	"""Berechnet die noetige Aenderung der Geschwindigkeit(dv) um auf der Linie zu bleiben"""
-	def __init__(self,kp,ki=0,kd=0,port_cs=-1,avgsize=1):
+	def __init__(self,soll,port_cs,kp,ki=0,kd=0,avgsize=1,**kwargs):
 		"""
-		INIT-PARAM: 
+		INIT-PARAM:
+		soll: Soll-Grauwert
 		kp,ki,kd:Konstanten des PID-Reglers
 		port_cs:Port des FarbSensors
 		avgsize: zu mittelnde Farbwerte( koennte sinnvoll sein wg Schwankungen)
 		"""
 		#~ MotorControl.__init__(self,port_m)
-		self._pid=PID(kp,ki,kd)
+		self._pid=PID(kp,ki,kd,**kwargs)
 		BetterColorSensor.__init__(self,port_cs)
-		self.grey_soll=self.grey
+		self.grey_soll=soll
 		self.avgsize=avgsize
 	
 	@property
@@ -191,28 +192,31 @@ class MotorControl(object):
 	"""Klasse zum Verbinden und Ansteueren mehrere Motoren gleichzeitg
 	
 	Attribute:
-	avg_speed: Mittlere Geschwindigkeit an den Motoren
 	margin: Maximalwert Geschwindigkeit (mit Speedregulation)
 	motors: Dictionary mit den jeweiligen Motoren(value) und Ports(key)
 	"""
-	def __init__(self,ports=None):
+	def __init__(self,avg_speed,all_ports=None,**kwargs):
 		"""INIT-Argument: 
 			ports: Liste/String der Ports der anzuschliessenden Motoren(default:None -> Alle verfuegbaren werden angeschlossen 
+			avg_speed: Mittlere Geschwindigkeit an den Motoren
 		"""
-		self.avg_speed=0
+		self.avg_speed=avg_speed
 		self.margin=2000 # 
 		self.motors = {}
 		self.inverted=False
-		if not ports :
+		if not all_ports :
 			self.attach_all_motors()
 		else:
-			for port in ports:
+			for port in all_ports:
 				try :
 					motor = Motor(port=port)
 					self.motors[port]=motor
 				except NoSuchMotorError:
 					print("Kein Motor an "+port+" gefunden")
-				
+		for k in kwargs:
+			v = kwargs[k]
+			if (v != None):
+				setattr(self, k, v)		
 	def set_speed(self,sp,ports=None):
 		"""setzt eine Geschwindigkeit(additiv zur mittleren) und schreibt den Wert an bestimmte/alle Motoren
 		
@@ -232,7 +236,6 @@ class MotorControl(object):
 		else :
 			try:
 				for p in ports:
-					print(p)
 					self.motors[p].run_forever(sp,speed_regulation=True)
 			except KeyError: 
 				print("Kein Motor an "+p+" gefunden")
@@ -245,7 +248,6 @@ class MotorControl(object):
 				motor = Motor(port=port)
 				motor.speed_regulation = True	
 				self.motors[port]=motor
-				break
 			except NoSuchMotorError: pass
 	def stop_motors(self,ports=None):
 		"""Stopt alle Motoren
@@ -265,13 +267,13 @@ class MotorControl(object):
 
 class TotalControl(MotorControl):
 	"""Kontrolliert die Geschwindigkeit der einzelnen Motoren um einen Abstand und die Linie zu halten, erweitert MotorControl"""
-	def __init__(self,dist_set,line_set,port_ml,port_mr,ports_m=None,**kwargs):		
-		MotorControl.__init__(self,ports_m)
+	def __init__(self,dist_set,line_set,left_ports,right_ports,all_ports=None,**kwargs):		
+		MotorControl.__init__(self,all_ports)
 		self.left=()
 		self.right=()
-		for l in port_ml:
+		for l in left_ports:
 			self.left.append(self.motors[l])
-		for r in port_mr:
+		for r in right_ports:
 			self.right.append(self.motors[r])
 		line=LineKeep(**line_set)
 		dist=DistKeep(**dist_set)
@@ -285,5 +287,4 @@ class TotalControl(MotorControl):
 			dv_l=-dist.dv-line.dv
 		set_speed(sp=dv_l,ports=left)
 		set_speed(sp=dv_r,ports=right)
-
 	
