@@ -13,7 +13,6 @@ while True:
     try:
         bufsock, bufaddr = server.accept()
         peers.append(bufsock)
-        port = port + 1
         print "Neuer Teilnehmer: " + bufaddr[0] + " (" + bluetooth.lookup_name(bufaddr[0], timeout=3) + ")"
     except:
         pass
