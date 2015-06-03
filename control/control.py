@@ -1,7 +1,7 @@
 import time
 from ev3.lego import *
 from ev3.ev3dev import NoSuchMotorError,NoSuchSensorError
-
+from multiprocessing import Process, Queue
 
 class RunningAverage(object):
 	"""Klasse zur Berechnung des laufenden Mittelwertes von avg_size vielen  Werten"""
@@ -28,6 +28,7 @@ class PID(object):
 		zusaetzlich moegliche Keyword Argumente:
 		antiwindup: Begrenzen des Integralanteils (default=0)
 		avgsize: Anzahl der zumittelnden Differentialwerte (default=1)
+		maxval: Maximalwert
 		"""
 		self.kp=kp
 		self.ki=ki
@@ -37,6 +38,7 @@ class PID(object):
 		self._old=0     #vorheriger Fehler
 		self._clock_old=0
 		self.avgsize=1
+		self.maxval=0
 		for k in kwargs:
 			v = kwargs[k]
 			if (v != None):
@@ -52,7 +54,7 @@ class PID(object):
 		returns: float
 		"""
 		clock=time.clock()
-		dt=(clock-self._clock_old)*100000 #da ansonsten sehr klein
+		dt=(clock-self._clock_old)*1000 #da ansonsten sehr klein
 		error=soll-ist 
 		#Integral
 		i=self._int_sum+error*dt
@@ -69,6 +71,11 @@ class PID(object):
 		out=self.kp*error+self.ki*i+self.kd*d
 		self._clock_old=clock
 		self._old=error
+		if self.maxval:
+			if out>self.maxval : 
+				out=self.maxval
+			elif  out< -self.maxval : 
+				out= -self.maxval
 		return out
 	@property
 	def avgsize(self):
@@ -76,6 +83,7 @@ class PID(object):
 	@avgsize.setter
 	def avgsize(self,size):
 		if size<=1: self._d_avg=None
+		size=int(size)
 		self._d_avg=RunningAverage(size)
 
 class DistKeep(UltrasonicSensor):
@@ -94,13 +102,16 @@ class DistKeep(UltrasonicSensor):
 		self.soll = soll
 		#print(kwargs)
 		self.pid=PID(kp,ki,kd,**kwargs)
-		UltrasonicSensor.__init__(self,port_us)
+		self.max_dist=max_dist
+		UltrasonicSensor.__init__(self,int(port_us))
 	@property
 	def dv(self):
 		"""noetige Geschwindigkeitsaenderung"""
 		ist=self.dist_cm
 		if ist>self.max_dist :
 			ist=self.soll
+		if ist<-self.max_dist :
+			ist = -self.soll
 		speed=self.pid.calc(ist,self.soll)
 		return int(speed)
 	def set_pid(self,**kwargs):
@@ -166,15 +177,14 @@ class LineKeep(BetterColorSensor):
 		self._pid=PID(kp,ki,kd,**kwargs)
 		BetterColorSensor.__init__(self,port_cs)
 		self.grey_soll=soll
-		self.avgsize=avgsize
+		#~ self.avgsize=avgsize
 	
 	@property
 	def dv(self):
 		"""noetige Geschwindigkeitsaenderung"""
-		if self.avgsize==1:
-			grey=self.grey
-		else:
-			grey=self.grey_avg
+		
+		grey=self.grey
+		
 		speed=self._pid.calc(grey,self.grey_soll)
 		#print(speed)
 		return int(speed)
@@ -266,25 +276,67 @@ class MotorControl(object):
 				print("Kein Motor an "+p+" gefunden")
 
 class TotalControl(MotorControl):
-	"""Kontrolliert die Geschwindigkeit der einzelnen Motoren um einen Abstand und die Linie zu halten, erweitert MotorControl"""
-	def __init__(self,dist_set,line_set,left_ports,right_ports,all_ports=None,**kwargs):		
-		MotorControl.__init__(self,all_ports)
-		self.left=()
-		self.right=()
+	"""Kontrolliert die Geschwindigkeit(Multithreading) der einzelnen Motoren um einen Abstand und die Linie zu halten, erweitert MotorControl
+	INIT-PARAM:
+	
+	"""
+	def __init__(self,dist_set,line_set,left_ports,right_ports,avg_speed,**kwargs):
+				
+		MotorControl.__init__(self,avg_speed)
+				
+		self.left = []
+		self.right = []
 		for l in left_ports:
-			self.left.append(self.motors[l])
+			self.left.append(l)
 		for r in right_ports:
-			self.right.append(self.motors[r])
-		line=LineKeep(**line_set)
-		dist=DistKeep(**dist_set)
-	
-	def run(self,r_of_line=True):
-		if r_of_line:
-			dv_r=-dist.dv-line.dv
-			dv_l=-dist.dv+line.dv
-		if l_of_line:
-			dv_r=-dist.dv+line.dv
-			dv_l=-dist.dv-line.dv
-		set_speed(sp=dv_l,ports=left)
-		set_speed(sp=dv_r,ports=right)
-	
+			self.right.append(r)
+		self.line = LineKeep(**line_set)
+		self.dist = DistKeep(**dist_set)
+		
+	def start(self):
+		
+		#~ self.run = True
+		dv_dist= Queue(1)
+		dv_line= Queue(1)
+		
+		self.process_l = Process(target = self.run_line,args = [self.line,dv_line])
+		self.process_d = Process(target = self.run_dist,args = [self.dist,dv_dist])
+		self.process_s = Process(target = self.run_speed,args = [dv_dist,dv_line])
+		self.process_s.start()
+		self.process_l.start()
+		self.process_d.start()
+		
+		
+	def stop(self):
+		#~ self.run=False
+		self.process_d.terminate()
+		self.process_l.terminate()
+		self.process_s.terminate()
+		self.stop_motors()
+		
+	def run_dist(self,distkeep,conn):
+		#~ print('ne')
+		while  True:
+			
+			dv=distkeep.dv
+			if conn.empty() :
+				print('dv')
+				conn.put(dv)
+			
+	def run_line(self,linekeep,conn):
+		while True:
+			dv=linekeep.dv
+			if conn.empty() : conn.put(dv)
+			
+	def run_speed(self,conn_d,conn_l):
+		dv_d=0
+		dv_l=0
+		while True:
+			if not conn_d.empty(): 
+				dv_d = conn_d.get()
+				print(dv_d)
+			if not conn_l.empty(): dv_l = conn_l.get()
+			#~ print('l')
+			self.set_speed(-dv_d-dv_l,self.left)
+			self.set_speed(-dv_d+dv_l,self.right)
+		#~ self.terminate()

@@ -36,8 +36,9 @@ class Configurator(ConfigParser):
 		out={}
 		for o in self.options('Distance'):
 			out[o]=self.getfloat('Distance',o)
-		return out
 		out['port_us']=int(out['port_us'])
+		return out
+		
 	
 	def config_line(self):
 		'''Liest die Einstellungen zum Halten der Linie aus der Config  und gibt sie als Dict zurueck '''
@@ -45,6 +46,8 @@ class Configurator(ConfigParser):
 		for o in self.options('Line'):
 			out[o]=self.getfloat('Line',o)
 		out['port_cs']=int(out['port_cs'])
+		#~ if 'avgsize' in out:
+			#~ out['avgsize']=int(out['avgsize'])
 		return out
 	def calibrate_line(self):
 		l=Lcd()
