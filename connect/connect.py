@@ -5,7 +5,7 @@ class BTClient:
         self.csock = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
         self.sname = "NOCH NICHT VERBUNDEN"
 
-    def connect(self, sname="88:9F:FA:F0:C0:88", discover_timeout=2, connect_timeout=None, port=1):
+    def connect(self, sname="88:9F:FA:F0:C0:88", discover_timeout=4, connect_timeout=None, port=1):
         self.sname = sname
         self.csock.settimeout(connect_timeout)
 
@@ -14,7 +14,7 @@ class BTClient:
             if dev[0] == sname or dev[1] == sname:
                 print "Server " + str(sname) + " gefunden, versuche Verbindungsaufbau"
                 try:
-                    self.csock.connect((sname, port))
+                    self.csock.connect((dev[0], port))
                 except:
                     print "Verbindungsaufbau mit " + str(sname) + " an Port " + str(port) + " gescheitert!"
                     self.csock.settimeout(None)
@@ -31,18 +31,18 @@ class BTClient:
 
         try:
             self.csock.send(data)
-            print "Botschaft: '" str(data) + "' gesendet an " + str(self.sname)
+            print "Botschaft: '" + str(data) + "' gesendet an " + str(self.sname)
         except:
             print "Senden an " + str(self.sname) + " gescheitert"
 
         self.csock.settimeout(None)
 
     def receive(self, size=1024, recv_timeout=None):
-        self.csock.settimeout(send_timeout)
+        self.csock.settimeout(recv_timeout)
 
         try:
-            data = self.socket.recv(size)
-            print "Botschaft: '" str(data) + "' empfangen von " + str(self.sname)
+            data = self.csock.recv(size)
+            print "Botschaft: '" + str(data) + "' empfangen von " + str(self.sname)
             self.csock.settimeout(None)
             return data
         except:
@@ -85,7 +85,7 @@ class BTHost:
             if p[1] == paddr or p[2] == paddr:
                 try:
                     p[0].send(data)
-                    print "Botschaft: '" str(data) + "' gesendet an " + str(paddr)
+                    print "Botschaft: '" + str(data) + "' gesendet an " + str(paddr)
                 except:
                     self.peersocks.remove(p)
                     print "Verbindung zu " + p[1] + " (" + p[2] + ") verloren!"
@@ -102,7 +102,7 @@ class BTHost:
                 self.peersocks.remove(p)
                 print "Verbindung zu " + p[1] + " (" + p[2] + ") verloren!"
 
-        print "Botschaft: '" str(data) + "' gesendet an " + str(len(self.peersocks)) + " Peers"
+        print "Botschaft: '" + str(data) + "' gesendet an " + str(len(self.peersocks)) + " Peers"
         self.hostsock.settimeout(None)
 
     def receive(self, paddr, size=1024, recv_timeout=None):
@@ -113,7 +113,7 @@ class BTHost:
             if p[1] == paddr or p[2] == paddr:
                 try:
                     data = p[0].recv(size)
-                    print "Botschaft: '" str(data) + "' empfangen von " + str(paddr)
+                    print "Botschaft: '" + str(data) + "' empfangen von " + str(paddr)
                 except:
                     self.peersocks.remove(p)
                     print "Verbindung zu " + p[1] + " (" + p[2] + ") verloren!"

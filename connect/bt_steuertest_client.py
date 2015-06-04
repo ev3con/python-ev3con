@@ -3,7 +3,8 @@ from connect import *
 from ev3.ev3dev import LED
 
 # Host ist:
-# thinkpat - 88:9F:FA:F0:C0:88
+# thinkpat - 88:9F:FA:F0:C0:88 (Patrick)
+# ubuntu-0 - 80:19:34:F4:DD:F9 (Justus)
 
 btc = BTClient()
 btc.connect("thinkpat")
@@ -22,8 +23,8 @@ while True:
 
     if data == "on":
         led.left.on()
-    else if data == "off":
+    elif data == "off":
         led.left.off()
-    else if data == None:
+    elif data == None:
         print "Verbindung zu Server verloren!"
         exit()

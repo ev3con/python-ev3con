@@ -16,6 +16,6 @@ while True:
         bth.send2all("off")
     end_time = time.time()
 
-    print "Sendezeit: " + str( end_time - start_time )
+    print "Sendezeit: " + str( end_time - start_time ) + " Sekunden"
     tgl = not tgl
     time.sleep(0.5)
