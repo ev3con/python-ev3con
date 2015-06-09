@@ -1,4 +1,4 @@
-# line_line.py - Automatische Linienverfolung mit Abstandshaltung
+# follow_line.py - Automatische Linienverfolung mit Abstandshaltung
 # 9. Juni 2015 - Patrick Ziegler, TU Dresden
 #
 # Dieses Skript stellt einen Machbarkeitstest der gleichzeitigen
