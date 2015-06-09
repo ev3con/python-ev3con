@@ -9,7 +9,7 @@
 # Abstaenden dauert der Schleifendurchlauf bis zu 40 ms.
 #
 # Beispielhafte Verwendung:
-# python follow_line.py --Vref 350 --lKp 2.5 --lKd 9 --dKp 3
+# python follow_line.py --Vref 350 --lKp 2 --lKd 8 --dKp 3
 
 import sys, time, traceback, argparse
 from ev3dev import *
@@ -44,9 +44,9 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('--Vref', dest='Vref', type=float, default=350)
-    parser.add_argument('--lKp', dest='lKp', type=float, default=2.5)
+    parser.add_argument('--lKp', dest='lKp', type=float, default=2.0)
     parser.add_argument('--lKi', dest='lKi', type=float, default=0.0)
-    parser.add_argument('--lKd', dest='lKd', type=float, default=9.0)
+    parser.add_argument('--lKd', dest='lKd', type=float, default=8.0)
     parser.add_argument('--dKp', dest='dKp', type=float, default=3.0)
     parser.add_argument('--dKi', dest='dKi', type=float, default=0.0)
     parser.add_argument('--dKd', dest='dKd', type=float, default=0.0)
@@ -66,7 +66,8 @@ if __name__ == "__main__":
 
     cs = color_sensor()
     cs.mode = 'COL-REFLECT'
-    colref = 30 # Ermittelt am Tisch in BAR I/48
+    colmax = 55 # Reflexion auf Tisch, ermittelt in BAR I/48
+    colmin = 5 # Reflexion auf Linie, ermittelt in BAR I/48
 
     us = ultrasonic_sensor()
     us.mode = 'US-DIST-CM'
@@ -79,20 +80,22 @@ if __name__ == "__main__":
         while True:
             start_t = time.time()
 
-            corr_line = pid_line.calc(colref - cs.value(), 2*args.Vref)
-            corr_dist = pid_dist.calc(distref - us.value(), 2*args.Vref)
+            # die Farbwerte werden automatisch auf Bereich [0,100] abgebildet, Differzenz zu 50 ist Fehler fuer PID
+            corr_line = pid_line.calc( 50 - ( ( cs.value() - colmin ) / ( colmax - colmin ) ) * 100, 2*args.Vref )
+            corr_dist = pid_dist.calc( distref - us.value(), 2*args.Vref )
 
+            # es soll nicht auf Hindernis zubeschleunigt werden
             if corr_dist < 0:
                 corr_dist = 0
 
             if corr_line > 0: # im dunklen Bereich
-                ml.run_forever( speed_sp = int(args.Vref - corr_dist) )
-                mr.run_forever( speed_sp = int(args.Vref - corr_dist - corr_line) )
+                ml.run_forever( speed_sp = int( args.Vref - corr_dist ) )
+                mr.run_forever( speed_sp = int( args.Vref - corr_dist - corr_line ) )
             elif corr_line < 0: # im hellen Bereich
-                ml.run_forever( speed_sp = int(args.Vref - corr_dist + corr_line) )
-                mr.run_forever( speed_sp = int(args.Vref - corr_dist) )
+                ml.run_forever( speed_sp = int( args.Vref - corr_dist + corr_line ) )
+                mr.run_forever( speed_sp = int( args.Vref - corr_dist ) )
 
-            print "Schleifendauer: " + str(time.time() - start_t) + "s"
+            print "Zyklusdauer: " + str(time.time() - start_t) + "s"
 
     except:
         ml.stop()
