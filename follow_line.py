@@ -3,7 +3,7 @@
 #
 # Dieses Skript stellt einen Machbarkeitstest der gleichzeitigen
 # Regelung von Linienverfolgung und Abstandshaltung dar. Es wurde
-# nicht die Library von topikatchu, sondern 'python-ev3dev' von
+# nicht die Library von topikachu, sondern 'python-ev3dev' von
 # Denis Demidov verwendet!
 # Ein Schleifenzyklus dauert in der Regel 7-8 ms, in unregelmaessigen
 # Abstaenden dauert der Schleifendurchlauf bis zu 40 ms.
@@ -71,7 +71,7 @@ if __name__ == "__main__":
 
     us = ultrasonic_sensor()
     us.mode = 'US-DIST-CM'
-    distref = 200
+    distref = 200 # Abstand wird in mm gemessen!
 
     try:
         ml.run_forever(speed_sp=int(args.Vref))
