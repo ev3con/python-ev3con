@@ -8,7 +8,7 @@
 # Ein Schleifenzyklus dauert in der Regel 7-8 ms, in unregelmaessigen
 # Abstaenden dauert der Schleifendurchlauf bis zu 40 ms.
 
-import sys, time, traceback, argparse, math
+import sys, time, traceback, argparse
 from ev3dev import *
 
 class PID:
