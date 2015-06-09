@@ -7,6 +7,9 @@
 # Denis Demidov verwendet!
 # Ein Schleifenzyklus dauert in der Regel 7-8 ms, in unregelmaessigen
 # Abstaenden dauert der Schleifendurchlauf bis zu 40 ms.
+#
+# Beispielhafte Verwendung:
+# python follow_line.py --Vref 350 --lKp 2.5 --lKd 9 --dKp 3
 
 import sys, time, traceback, argparse
 from ev3dev import *
@@ -19,21 +22,21 @@ class PID:
         self.lasterror = 0.0
         self.integral = 0.0
         self.derivative = 0.0
-        self.corr_line = 0.0
+        self.correction = 0.0
 
     def calc(self, error, limit=None):
         self.integral = 0.5 * self.integral + error
         self.derivative = error - self.lasterror
         self.preverr = error
-        self.corr_line = self.Kp * error + self.Ki * self.integral + self.Kd * self.derivative
+        self.correction = self.Kp * error + self.Ki * self.integral + self.Kd * self.derivative
 
         if limit == None:
-            return self.corr_line
+            return self.correction
 
         if abs(self.corr_line) < abs(limit):
-            return self.corr_line
+            return self.correction
 
-        return (self.corr_line / abs(self.corr_line)) * limit
+        return (self.correction / abs(self.correction)) * limit
 
 if __name__ == "__main__":
     sound.beep()
@@ -41,15 +44,15 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(sys.argv[0])
     parser.add_argument('--Vref', dest='Vref', type=float, default=350)
-    parser.add_argument('--fKp', dest='fKp', type=float, default=2.5)
-    parser.add_argument('--fKi', dest='fKi', type=float, default=0.0)
-    parser.add_argument('--fKd', dest='fKd', type=float, default=9.0)
+    parser.add_argument('--lKp', dest='lKp', type=float, default=2.5)
+    parser.add_argument('--lKi', dest='lKi', type=float, default=0.0)
+    parser.add_argument('--lKd', dest='lKd', type=float, default=9.0)
     parser.add_argument('--dKp', dest='dKp', type=float, default=3.0)
     parser.add_argument('--dKi', dest='dKi', type=float, default=0.0)
     parser.add_argument('--dKd', dest='dKd', type=float, default=0.0)
     args = parser.parse_args(sys.argv[1:])
 
-    pid_line = PID(args.fKp, args.fKi, args.fKd)
+    pid_line = PID(args.lKp, args.lKi, args.lKd)
     pid_dist = PID(args.dKp, args.dKi, args.dKd)
     corr_line = 0.0
     corr_dist = 0.0
