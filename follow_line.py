@@ -1,21 +1,21 @@
 # follow_line.py - Automatische Linienverfolung mit Abstandshaltung
-# 9. Juni 2015 - Patrick Ziegler, TU Dresden
+# 11. Juni 2015 - Patrick Ziegler, TU Dresden
 #
-# Dieses Skript stellt einen Machbarkeitstest der gleichzeitigen
-# Regelung von Linienverfolgung und Abstandshaltung dar. Es wurde
-# nicht die Library von topikachu, sondern 'python-ev3dev' von
-# Denis Demidov verwendet!
-# Ein Schleifenzyklus dauert in der Regel 7-8 ms, in unregelmaessigen
-# Abstaenden dauert der Schleifendurchlauf bis zu 40 ms.
+# Es wird die Bibliothek von topikachu verwendet! Ein Schleifenzyklus
+# dauert in der Regel ?? ms.
 #
 # Beispielhafte Verwendung:
-# python follow_line.py --Vref 350 --lKp 2 --lKd 8 --dKp 3
+# python follow_line.py -Vref 350 -lKp 2 -lKd 8 -dKp 3
 
 import sys, time, traceback, argparse
-from ev3dev import *
+from ev3.ev3dev import *
+from ev3.lego import *
 
 class PID:
     def __init__(self, Kp=0.0, Ki=0.0, Kd=0.0):
+        self.reset(Kp, Ki, Kd)
+
+    def reset(self, Kp=0.0, Ki=0.0, Kd=0.0):
         self.Kp = Kp
         self.Ki = Ki
         self.Kd = Kd
@@ -30,72 +30,47 @@ class PID:
         self.preverr = error
         self.correction = self.Kp * error + self.Ki * self.integral + self.Kd * self.derivative
 
-        if limit == None:
-            return self.correction
+        if not limit == None:
+            if abs(self.correction) > abs(limit):
+                self.correction = (self.correction / abs(self.correction)) * limit
 
-        if abs(self.corr_line) < abs(limit):
-            return self.correction
+        return self.correction
 
-        return (self.correction / abs(self.correction)) * limit
-
-if __name__ == "__main__":
-    sound.beep()
+def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
     start_t = 0.0
 
-    parser = argparse.ArgumentParser(sys.argv[0])
-    parser.add_argument('--Vref', dest='Vref', type=float, default=350)
-    parser.add_argument('--lKp', dest='lKp', type=float, default=2.0)
-    parser.add_argument('--lKi', dest='lKi', type=float, default=0.0)
-    parser.add_argument('--lKd', dest='lKd', type=float, default=8.0)
-    parser.add_argument('--dKp', dest='dKp', type=float, default=3.0)
-    parser.add_argument('--dKi', dest='dKi', type=float, default=0.0)
-    parser.add_argument('--dKd', dest='dKd', type=float, default=0.0)
-    args = parser.parse_args(sys.argv[1:])
+    pid_line = PID(lKp, lKi, lKd)
+    pid_dist = PID(dKp, dKi, dKd)
 
-    pid_line = PID(args.lKp, args.lKi, args.lKd)
-    pid_dist = PID(args.dKp, args.dKi, args.dKd)
-    corr_line = 0.0
-    corr_dist = 0.0
+    ml = Motor(port=Motor.PORT.A)
+    mr = Motor(port=Motor.PORT.B)
 
-    ml = large_motor(OUTPUT_A)
-    mr = large_motor(OUTPUT_B)
-    ml.polarity = 'inversed'
-    mr.polarity = 'inversed'
-    ml.speed_regulation_enabled = 'on'
-    mr.speed_regulation_enabled = 'on'
-
-    cs = color_sensor()
-    cs.mode = 'COL-REFLECT'
-    colmax = 55 # Reflexion auf Tisch, ermittelt in BAR I/48
-    colmin = 5 # Reflexion auf Linie, ermittelt in BAR I/48
-
-    us = ultrasonic_sensor()
-    us.mode = 'US-DIST-CM'
-    distref = 200 # Abstand wird in mm gemessen!
+    cs = ColorSensor()
+    us = UltrasonicSensor()
 
     try:
-        ml.run_forever(speed_sp=int(args.Vref))
-        mr.run_forever(speed_sp=int(args.Vref))
+        ml.run_forever(Vref, speed_regulation=True)
+        mr.run_forever(Vref, speed_regulation=True)
 
         while True:
             start_t = time.time()
 
-            # die Farbwerte werden automatisch auf Bereich [0,100] abgebildet, Differzenz zu 50 ist Fehler fuer PID
-            corr_line = pid_line.calc( 50 - ( ( cs.value() - colmin ) / ( colmax - colmin ) ) * 100, 2*args.Vref )
-            corr_dist = pid_dist.calc( distref - us.value(), 2*args.Vref )
+            # die Farbwerte werden automatisch auf Bereich [0,100] abgebildet, Differenz zu 50 ist Fehler fuer PID
+            pid_line.calc( 50 - ( ( cs.reflect - colmin ) / ( colmax - colmin ) ) * 100, 2*Vref )
+            pid_dist.calc( distref - us.dist_cm, 2*Vref )
 
             # es soll nicht auf Hindernis zubeschleunigt werden
-            if corr_dist < 0:
-                corr_dist = 0
+            if pid_dist.correction < 0:
+                pid_dist.correction = 0
 
-            if corr_line > 0: # im dunklen Bereich
-                ml.run_forever( speed_sp = int( args.Vref - corr_dist ) )
-                mr.run_forever( speed_sp = int( args.Vref - corr_dist - corr_line ) )
-            elif corr_line < 0: # im hellen Bereich
-                ml.run_forever( speed_sp = int( args.Vref - corr_dist + corr_line ) )
-                mr.run_forever( speed_sp = int( args.Vref - corr_dist ) )
+            if pid_line.correction > 0: # im dunklen Bereich
+                ml.run_forever( (-1) * ( Vref - pid_dist.correction ) )
+                mr.run_forever( (-1) * ( Vref - pid_dist.correction - pid_line.correction ) )
+            elif pid_line.correction < 0: # im hellen Bereich
+                ml.run_forever( (-1) * ( Vref - pid_dist.correction + pid_line.correction ) )
+                mr.run_forever( (-1) * ( Vref - pid_dist.correction ) )
 
-            print "Zyklusdauer: " + str(time.time() - start_t) + "s"
+            print "Zyklusdauer: %.2fms" % (time.time() - start_t) * 1000
 
     except:
         ml.stop()
@@ -103,3 +78,19 @@ if __name__ == "__main__":
 
         print traceback.format_exc()
         print "Programm wurde beendet"
+
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(sys.argv[0])
+    parser.add_argument('-Vref', dest='Vref', type=float, default=350)
+    parser.add_argument('-colmax', dest='colmax', type=float, default=55.0)
+    parser.add_argument('-colmin', dest='colmin', type=float, default=5.0)
+    parser.add_argument('-distref', dest='distref', type=float, default=20.0)
+    parser.add_argument('-lKp', dest='lKp', type=float, default=2.0)
+    parser.add_argument('-lKi', dest='lKi', type=float, default=0.0)
+    parser.add_argument('-lKd', dest='lKd', type=float, default=8.0)
+    parser.add_argument('-dKp', dest='dKp', type=float, default=3.0)
+    parser.add_argument('-dKi', dest='dKi', type=float, default=0.0)
+    parser.add_argument('-dKd', dest='dKd', type=float, default=0.0)
+    args = parser.parse_args(sys.argv[1:])
+
+    follow_line(args.Vref, args.colmax, args.colmin, args.distref, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
