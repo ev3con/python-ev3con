@@ -21,14 +21,13 @@ class BTclient:
     def close(self):
         self.socket.close()
 
-# --------   M A I N   --------
-# thinkpat: "88:9F:FA:F0:C0:88"
 
-btc = BTclient()
-btc.connect2server("thinkpat")
+if __name__ == "__main__":
+    btc = BTclient()
+    btc.connect2server("thinkpat")
 
-while True:
-    data = btc.receive()
-    btc.send(data)
-    print "Empfangene Botschaft: " + data
-    print type(data)
+    while True:
+        data = btc.receive()
+        btc.send(data)
+        print "Empfangene Botschaft: " + data
+        print type(data)

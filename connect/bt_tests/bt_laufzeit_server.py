@@ -17,21 +17,21 @@ class BTserver:
         self.peer.close()
         self.server.close()
 
-# --------   M A I N   --------
 
-bts = BTserver()
-i = 0.0
-print "Server wurde gestartet"
+if __name__ == "__main__":
+    bts = BTserver()
+    i = 0.0
+    print "Server wurde gestartet"
 
-while True:
-    start_time = time.time()
+    while True:
+        start_time = time.time()
 
-    bts.send("Botschaft %f" % i )
-    bts.receive()
+        bts.send("Botschaft %f" % i )
+        bts.receive()
 
-    end_time = time.time()
+        end_time = time.time()
 
-    print "%f" % ( end_time - start_time )
-    i = i + 1
+        print "%f" % ( end_time - start_time )
+        i = i + 1
 
-    #time.sleep(1)
+        #time.sleep(1)

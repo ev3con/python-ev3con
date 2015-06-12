@@ -1,6 +1,5 @@
-import time
-from connect import *
 from ev3.ev3dev import LED
+from connect import *
 
 # Host ist:
 # thinkpat - 88:9F:FA:F0:C0:88 (Patrick)
@@ -10,10 +9,7 @@ btc = BTClient()
 btc.connect("thinkpat")
 
 led = LED()
-led.left.color=LED.COLOR.GREEN
-time.sleep(0.25)
 led.left.color=LED.COLOR.RED
-time.sleep(0.25)
 led.left.off()
 
 print "Beginne Empfang"

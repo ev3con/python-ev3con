@@ -2,7 +2,7 @@ import time
 import bluetooth
 from ev3.ev3dev import LED
 
-sname = "88:9F:FA:F0:C0:88"
+sname = "80:19:34:F4:DD:F9"
 port = 1
 
 socket = bluetooth.BluetoothSocket(bluetooth.RFCOMM)
