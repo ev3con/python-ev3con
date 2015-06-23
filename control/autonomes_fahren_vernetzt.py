@@ -89,7 +89,7 @@ class Configurator(ConfigParser):
 def communicate(port,host,q):
 	#~ host = sys.argv[1]
 	#~ port = int(sys.argv[2])
-	commands = {"stop" : c.stop }
+	
 	
 	s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 	s.settimeout(2)
@@ -155,6 +155,9 @@ def main():
 	############################INIT#########################
 	try:
 		control=TotalControl(param_d,param_l,**param_m)
+           	q = Queue()
+		commands = {"stop" : control.stop, "start" : control.start }
+		process_com = Process(target = communicate, args=(5000,'10.42.1.1',q))	
 	#Weitere Initialisierungen hier einfuegen
 	except:
 		lcd.draw.text((10, 10), "Initialisierungs Fehler", font=font)
@@ -163,8 +166,8 @@ def main():
 			lcd.update()
 			if key.down : break
 		return 1
-	q = Queue()
-	process_com = Process(target = communicate, args=(5000,'10.42.1.1',q))	
+	
+	
 	############################START##############################
 	lcd.draw.text((10, 10), "Start : Nach unten Taste", font=font)
 	while(True):
@@ -180,6 +183,11 @@ def main():
 			#~ control.start(idle=True)
 			#~ if control.clearpath:
 				#~ control.start()
+		data=str(q.get())
+		try:
+			commands[data]()
+		except:
+			pass
 		if key.down:
 			print('Stop')
 			break
