@@ -3,6 +3,7 @@ from control import *
 from ev3.ev3dev import Key, Lcd
 from PIL import Image,ImageDraw,ImageFont
 from configurator import *
+import time
 #from util import get_input
 
 class TestOr(unittest.TestCase):
@@ -43,6 +44,7 @@ class TestOr(unittest.TestCase):
 		#~ m.avg_speed=m_avg_speed
 		line=LineKeep(**param_l)
 		m=MotorControl(**param_m)
+		t_old=0
 		while(True):
 			if k.down:
 				l.draw.text((10, 10), "Test beendet  ", font=font)
@@ -51,11 +53,9 @@ class TestOr(unittest.TestCase):
 				break
 			dv=line.dv
 			print(dv)
-			l.reset()
-			l.draw.text((10, 10), "delta_v:", font=font)
-			l.draw.text((10, 30), str(dv), font=font)
-			l.update()
-		
+			t=time.time()
+			print t-t_old
+			t_old=t
 			m.set_speed(dv,left)
 			m.set_speed(-dv,right)
 if __name__ == '__main__':

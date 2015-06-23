@@ -26,12 +26,9 @@ class TestOr(unittest.TestCase):
 		while(True):
 			l.update()
 			if k.up:break
-		cont=TotalControl(param_d,param_l,param_m)
+		cont=TotalControl(param_d,param_l,**param_m)
 		
 		cont.start()
-		print(cont.process_s.is_alive())
-		print(cont.process_d.is_alive())
-		print(cont.process_l.is_alive())
 		while(True):
 			if k.down:
 				l.draw.text((10, 10), "Test beendet  ", font=font)

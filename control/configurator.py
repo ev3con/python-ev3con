@@ -10,25 +10,24 @@ class Configurator(ConfigParser):
 		ConfigParser.__init__(self)
 		self.path=path
 		self.read(path)
-	
+	def config_init(self):
+		out={}
+		for o in self.options('INIT'):
+			out[o]=self.getboolean('INIT',o)
+		if out['calibrate'] :
+			self.calibrate_line()
+		return out
 	def config_motors(self):
 		'''Gibt die Einstellungen fuer die Motoren als Dict zurueck'''
+		
 		out={}
-		out['left_ports']=self.get('Motors','left_ports')
-		out['right_ports']=self.get('Motors','right_ports')
-		out['avg_speed']=self.getint('Motors','avg_speed')
-		try:
-			out['inverted']=self.getboolean('Motors','inverted')
-		except NoOptionError:
-			pass
-		try:
-			out['all_ports']=self.get('Motors',"all_ports")
-		except NoOptionError:
-			pass
-		try:
-			out['margin']=self.get('Motors','margin')
-		except NoOptionError:
-			pass
+		for o in self.options('Motors'):
+			val=self.get('Motors',o)
+			try: 
+				val=int(val)
+			except:
+				pass
+			out[o]=val
 		return out
 	
 	def config_dist(self):
@@ -62,7 +61,6 @@ class Configurator(ConfigParser):
 			l.update()
 			black=c.grey
 			print('Schwarz:'+str(black))
-			time.sleep(0.5)
 			if k.up:break
 		time.sleep(1)
 		l.reset()
@@ -74,9 +72,10 @@ class Configurator(ConfigParser):
 			white=c.grey
 			print('Weiss:'+str(white))
 			if k.up:break
-		soll=(white+black)/2
 		l.reset()	
-		self.set('Line','soll',str(soll))
+		self.set('Line','white',str(white))
+		self.set('Line','black',str(black))
+		self.set('Init','calibrate',str(False))
 		os.remove(self.path)
 		with open(self.path, 'wb') as configfile:
 			self.write(configfile)
