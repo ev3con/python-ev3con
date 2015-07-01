@@ -102,13 +102,17 @@ class DistKeep(UltrasonicSensor):
 		#print(kwargs)
 		self.pid=PID(kp,ki,kd,**kwargs)
 		self.max_dist=max_dist
+		self.over_max_dist = False
 		UltrasonicSensor.__init__(self,int(port_us))
 	@property
 	def dv(self):
 		"""noetige Geschwindigkeitsaenderung"""
 		ist=self.dist_cm
 		if ist>self.max_dist or ist<-self.max_dist :
+			self.over_max_dist = True
 			return 0
+		else :
+			self.over_max_dist = False
 		speed=self.pid.calc(ist,self.soll)
 		return int(speed)
 	def set_pid(self,**kwargs):
@@ -298,13 +302,15 @@ class TotalControl(MotorControl):
 		#~ self.stopped=Value('b',True)
 		self.clearpath=Value('b',True)
 		self.margin_stop = margin_stop
-		self.avg_left=RunningAverage(avg_stop,self.avg_speed)
-		self.avg_right=RunningAverage(avg_stop,self.avg_speed)
+		self.avg=RunningAverage(avg_stop,self.avg_speed)
 		self.process = Process(target = self.run)
 		
 	def start(self,idle=False):
 		#~ self.stopped=False
-		self.process = Process(target = self.run, args=[idle])
+		if idle:
+			self.process = Process(target = self.run_idle)
+		else : 
+			self.process = Process(target = self.run)
 		self.process.start()
 		
 	def stop(self):
@@ -312,7 +318,7 @@ class TotalControl(MotorControl):
 		self.stop_motors()
 		self.process.terminate()
 		
-	def run(self,idle):
+	def run(self):
 		while True:
 			dv_d = self.dist.dv
 			dv_l = self.line.dv
@@ -320,19 +326,26 @@ class TotalControl(MotorControl):
 			dv_right =  -dv_d+dv_l
 			
 			
-			avg_l = abs(self.avg_left.calc(dv_left)+self.avg_speed)
-			avg_r = abs(self.avg_right.calc(dv_right)+self.avg_speed)
-			
-			under_margin=avg_l < self.margin_stop and avg_r < self.margin_stop
-			if under_margin : 
-				#~ self.stopped=False
+			avg = abs(self.avg.calc(dv_d)-self.avg_speed)
+			print(avg)
+			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
+			if under_margin :
 				self.stop_motors()
 				break
 			else:
-				self.clearpath=True
-			if not idle: 
 				self.set_speed(dv_left,self.left)
 				self.set_speed(dv_right,self.right)
+				
+	def run_idle(self) :
+		while True:
+			dv_d = self.dist.dv
+			avg = abs(self.avg.calc(dv_d)-self.avg_speed)
+			print(avg)
+			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
+			if under_margin :
+				self.clearpath=True
+				break
+		
 	@property
 	def stopped(self):
 		return not self.process.is_alive()
