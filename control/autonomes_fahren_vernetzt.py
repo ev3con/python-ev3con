@@ -5,6 +5,7 @@ from control import *
 import time
 import os
 import socket, select, string, sys
+from multiprocessing import Queue
 
 key = Key()
 lcd = Lcd()
@@ -134,7 +135,8 @@ def communicate(port,host,q):
 				s.send(msg)
 				prompt()"""
 
-	
+def test():
+ print "hurra"	
 def main():
 	##################CONFIG/CALIBRATION#########################
 	try:
@@ -153,11 +155,12 @@ def main():
 		return 1
 		
 	############################INIT#########################
+	q = Queue()
+	process_com = Process(target = communicate, args=[5000,'10.42.1.1',q])
 	try:
 		control=TotalControl(param_d,param_l,**param_m)
-           	q = Queue()
-		commands = {"stop" : control.stop, "start" : control.start }
-		process_com = Process(target = communicate, args=(5000,'10.42.1.1',q))	
+		commands = {"stop" : control.stop, "start" : control.start, "test" : test }
+		
 	#Weitere Initialisierungen hier einfuegen
 	except:
 		lcd.draw.text((10, 10), "Initialisierungs Fehler", font=font)
@@ -184,8 +187,13 @@ def main():
 			#~ if control.clearpath:
 				#~ control.start()
 		data=str(q.get())
+		print "try: " + data
+		if data.find("stop") != -1:
+			control.stop()
+		if data.find("start") != -1:
+			control.start()
 		try:
-			commands[data]()
+			commands[data[1:4]]()
 		except:
 			pass
 		if key.down:
