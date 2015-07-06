@@ -92,7 +92,7 @@ def main():
 	##################CONFIG/CALIBRATION#########################
 	
 	try:
-		conf = Configurator('ev3.cfg')
+		conf = Configurator('/home/ev3con/python-ev3con/control/ev3.cfg')
 		param_i = conf.config_init()
 		param_l = conf.config_line()
 		param_d = conf.config_dist()
@@ -108,16 +108,16 @@ def main():
 		return 1
 		
 	############################INIT#########################
-	try:
-		control=TotalControl(param_d,param_l,**param_m)
+	#try:
+	control=TotalControl(param_d,param_l,**param_m)
 	#Weitere Initialisierungen hier einfuegen
-	except:
-		lcd.draw.text((10, 10), "Initialisierungs Fehler", font=font)
-		lcd.draw.text((10, 50), "Ende : Nach unten Taste", font=font)
-		while(True):
-			lcd.update()
-			if key.down : break
-		return 1
+	#except:
+	#	lcd.draw.text((10, 10), "Initialisierungs Fehler", font=font)
+	#	lcd.draw.text((10, 50), "Ende : Nach unten Taste", font=font)
+	#	while(True):
+	#		lcd.update()
+	#		if key.down : break
+	#	return 1
 	############################START##############################
 	lcd.draw.text((10, 10), "Start : Nach unten Taste", font=font)
 	while(True):

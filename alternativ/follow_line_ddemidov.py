@@ -94,7 +94,7 @@ if __name__ == "__main__":
     parser.add_argument('-colmax', dest='colmax', type=float, default=63.0)
     parser.add_argument('-colmin', dest='colmin', type=float, default=7.0)
     parser.add_argument('-distref', dest='distref', type=float, default=300.0) # Abstand in mm
-    parser.add_argument('-lKp', dest='lKp', type=float, default=3.5.0)
+    parser.add_argument('-lKp', dest='lKp', type=float, default=3.5)
     parser.add_argument('-lKi', dest='lKi', type=float, default=0.0)
     parser.add_argument('-lKd', dest='lKd', type=float, default=2.0)
     parser.add_argument('-dKp', dest='dKp', type=float, default=30.0)
