@@ -327,10 +327,10 @@ class TotalControl(MotorControl):
 			
 			
 			avg = abs(self.avg.calc(dv_d)-self.avg_speed)
-			print(avg)
 			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
 			if under_margin :
 				self.stop_motors()
+				self.clearpath=False
 				break
 			else:
 				self.set_speed(dv_left,self.left)
@@ -340,7 +340,6 @@ class TotalControl(MotorControl):
 		while True:
 			dv_d = self.dist.dv
 			avg = abs(self.avg.calc(dv_d)-self.avg_speed)
-			print(avg)
 			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
 			if under_margin :
 				self.clearpath=True
