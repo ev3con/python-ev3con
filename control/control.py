@@ -304,17 +304,20 @@ class TotalControl(MotorControl):
 		self.margin_stop = margin_stop
 		self.avg=RunningAverage(avg_stop,self.avg_speed)
 		self.process = Process(target = self.run)
+		self.stopped=True
 		
 	def start(self,idle=False):
 		#~ self.stopped=False
+		
 		if idle:
 			self.process = Process(target = self.run_idle)
 		else : 
+			self.stopped=False
 			self.process = Process(target = self.run)
 		self.process.start()
 		
 	def stop(self):
-		#~ self.stopped=True
+		self.stopped=True
 		self.stop_motors()
 		self.process.terminate()
 		
@@ -345,6 +348,3 @@ class TotalControl(MotorControl):
 				self.clearpath=True
 				break
 		
-	@property
-	def stopped(self):
-		return not self.process.is_alive()
