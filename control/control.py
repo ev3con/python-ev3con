@@ -299,12 +299,11 @@ class TotalControl(MotorControl):
 		self.right = right_ports
 		self.line = LineKeep(**line_set)
 		self.dist = DistKeep(**dist_set)
-		#~ self.stopped=Value('b',True)
+		self.stopped=Value('b',True)
 		self.clearpath=Value('b',True)
 		self.margin_stop = margin_stop
 		self.avg=RunningAverage(avg_stop,self.avg_speed)
 		self.process = Process(target = self.run)
-		self.stopped=True
 		
 	def start(self,idle=False):
 		#~ self.stopped=False
@@ -333,6 +332,7 @@ class TotalControl(MotorControl):
 			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
 			if under_margin :
 				self.stop_motors()
+				self.stopped=True
 				self.clearpath=False
 				break
 			else:
