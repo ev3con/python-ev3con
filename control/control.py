@@ -341,7 +341,7 @@ class TotalControl(MotorControl):
 			dv_d = self.dist.dv
 			avg = abs(self.avg.calc(dv_d)-self.avg_speed)
 			under_margin=avg< self.margin_stop and not self.dist.over_max_dist
-			if under_margin :
+			if not under_margin :
 				self.clearpath=True
 				break
 		
