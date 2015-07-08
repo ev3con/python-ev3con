@@ -61,9 +61,11 @@ while True:
     except socket.timeout:
         mesg = "Nothing"
 
+    print "Empfangen: " + mesg
+
     if mesg.startswith("STOP"):
         sock.sendto("ACK", (addr[0],5005))
-        if p.name() == "follow_line":
+        if p.name == "follow_line":
             p.terminate()
             is_follower = True
             ml.stop()
@@ -71,7 +73,7 @@ while True:
 
     elif mesg.startswith("START"):
 	p.terminate()
-	p = Process( name="follow_line", target=follow_line, args=fl_args ) 
+	p = Process( name="follow_line", target=follow_line, args=fl_args )
 	p.start()
 	send(sock, purs_ip, "START", 3)
     else:
