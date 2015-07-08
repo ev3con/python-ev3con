@@ -29,6 +29,7 @@ class PID:
 
 def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
     cycle_t = 0.0
+    standing_t = 0.0
 
     pid_line = PID(lKp, lKi, lKd)
     pid_dist = PID(dKp, dKi, dKd)

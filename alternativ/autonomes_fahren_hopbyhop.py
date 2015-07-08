@@ -21,7 +21,7 @@ fl_args = (args.Vref, args.colmax, args.colmin, args.distref, args.lKp, args.lKi
 
 # IP-Adresse des Verfolgers berechnen
 purs_ip = args.ip.split(".")
-purs_ip = purs_ip[0] + "." + purs_ip[1] + "." purs_ip[2] + "." + str( abs( int(purs_ip[3] - 1 ) )
+purs_ip = purs_ip[0] + "." + purs_ip[1] + "." + purs_ip[2] + "." + str( abs( int(purs_ip[3]) - 1 ) )
 
 # Socket erstellen und an eigene IP binden
 sock = socket.socket(type=socket.SOCK_DGRAM)
