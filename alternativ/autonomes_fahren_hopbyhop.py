@@ -41,10 +41,10 @@ while True:
     try:
         mesg, addr = sock.recvfrom(1024)
     except socket.timeout:
-        pass
+        mesg = "Nothing"
 
     # Falls kein ACK empfangen wurde, gehen wir von einem STOP aus
-    if not mesg.startswith("ACK"):
+    if not mesg.startswith("ACK") and mesg != "Nothing":
         sock.sendto("ACK", addr)
         if p.name() == "follow_line":
             p.terminate()
