@@ -39,7 +39,7 @@ if __name__ == "__main__":
     sock.settimeout(0.25)
 
     # Fahrt beginnen, Steuerungsprozess wird parallel gestartet
-    p = Process( name="follow_line", target=follow_line, args=fl_args )
+    p = Process( name="follow_line", target=follow_line, args=(args.Vref, args.colmax, args.colmin, args.distref, args.timeref, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd) )
     p.start()
 
     is_follower = False
