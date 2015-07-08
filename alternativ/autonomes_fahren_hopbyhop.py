@@ -40,11 +40,12 @@ purs_ip = args.purs_ip
 
 # Socket erstellen und an eigene IP binden
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-sock.bind((args.ip, 5005))
+sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+sock.bind(("0.0.0.0", 5005))
 sock.settimeout(0.25)
 
 # Fahrt beginnen, Steuerungsprozess wird parallel gestartet
-p = Process( name="follow_line", target=follow_line, args=fl_args)
+p = Process( name="follow_line", target=follow_line, args=fl_args )
 p.start()
 
 # Vielleicht muessen Motoren manuell gestoppt werden
@@ -69,13 +70,16 @@ while True:
             mr.stop()
 
     elif mesg.startswith("START"):
-
+	p.terminate()
+	p = Process( name="follow_line", target=follow_line, args=fl_args ) 
+	p.start()
+	send(sock, purs_ip, "START", 3)
     else:
         pass
 
     # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
     if not p.is_alive():
-        if p.name() == "follow_line":
+        if p.name == "follow_line":
             # Hindernis im Weg, sende STOP
             send(sock, purs_ip, "STOP", 3)
 
@@ -85,7 +89,7 @@ while True:
                 p.start()
             else:
                 # Warten, bis Hindernis verschwunden
-                p = Process(name="wait_barrier", target=wait_barrier, args=(0.5*args.distref,))
+                p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
                 p.start()
 
         else:
