@@ -42,8 +42,8 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, lKp=0.0, lKi=0.0,
     hupe = Tone()
 
     led = LED()
-    led.left.color = LED.COLOR.AMBER
-    led.right.color = LED.COLOR.AMBER
+    led.left.color = LED.COLOR.GREEN
+    led.right.color = LED.COLOR.GREEN
 
     try:
         ml.run_forever(Vref, speed_regulation=True)

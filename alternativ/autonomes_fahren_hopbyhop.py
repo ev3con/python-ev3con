@@ -1,7 +1,21 @@
-import sys, argparse, socket
+import sys, argparse, socket, time
 from multiprocessing import Process
 from ev3.ev3dev import Motor
 from autonomes_fahren import *
+
+def wait(duration=0.03):
+    while True:
+        time.sleep(duration)
+
+def send(sock, ip="127.0.0.1", mesg="spameggsausageandspam", tries=3):
+    for i in range(0,tries):
+        sock.sendto(mesg, (ip,5005))
+        try:
+            mesg, addr = sock.recvfrom(1024)
+        except socket.timeout:
+            pass
+        if mesg.startswith("ACK"):
+            return
 
 # Beim Aufruf uebergebene Argumente verarbeiten
 parser = argparse.ArgumentParser( sys.argv[0] )
@@ -15,26 +29,29 @@ parser.add_argument( "-lKd", dest="lKd", type=float, default=2.0 )
 parser.add_argument( "-dKp", dest="dKp", type=float, default=30.0 )
 parser.add_argument( "-dKi", dest="dKi", type=float, default=0.0 )
 parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
-parser.add_argument( "-ip", dest="ip", type=str, default="127.0.0.1" )
+#parser.add_argument( "-pos", dest="pos", type=float, default=1 )
+parser.add_argument( "-purs_ip", dest="purs_ip", type=str, default="127.0.0.1" )
 args = parser.parse_args( sys.argv[1:] )
 fl_args = (args.Vref, args.colmax, args.colmin, args.distref, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
 
 # IP-Adresse des Verfolgers berechnen
-purs_ip = args.ip.split(".")
-purs_ip = purs_ip[0] + "." + purs_ip[1] + "." + purs_ip[2] + "." + str( abs( int(purs_ip[3]) - 1 ) )
+# purs_ip = "10.42.1.1" + str( int( args.pos - 1 ) )
+purs_ip = args.purs_ip
 
 # Socket erstellen und an eigene IP binden
-sock = socket.socket(type=socket.SOCK_DGRAM)
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 sock.bind((args.ip, 5005))
-sock.settimeout(0.6)
+sock.settimeout(0.25)
 
 # Fahrt beginnen, Steuerungsprozess wird parallel gestartet
 p = Process( name="follow_line", target=follow_line, args=fl_args)
 p.start()
 
 # Vielleicht muessen Motoren manuell gestoppt werden
-# ml = Motor(port=Motor.PORT.A)
-# mr = Motor(port=Motor.PORT.B)
+ml = Motor(port=Motor.PORT.A)
+mr = Motor(port=Motor.PORT.B)
+
+is_follower = False # vlt. besser True?
 
 # Endlosschleife, darin erfolgt die Kommunikation und die Verwaltung des Steuerungsprozesses
 while True:
@@ -43,36 +60,38 @@ while True:
     except socket.timeout:
         mesg = "Nothing"
 
-    # Falls kein ACK empfangen wurde, gehen wir von einem STOP aus
-    if not mesg.startswith("ACK") and mesg != "Nothing":
-        sock.sendto("ACK", addr)
+    if mesg.startswith("STOP"):
+        sock.sendto("ACK", (addr[0],5005))
         if p.name() == "follow_line":
             p.terminate()
-            # ml.stop()
-            # mr.stop()
+            is_follower = True
+            ml.stop()
+            mr.stop()
+
+    elif mesg.startswith("START"):
+
+    else:
+        pass
 
     # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
     if not p.is_alive():
         if p.name() == "follow_line":
+            # Hindernis im Weg, sende STOP
+            send(sock, purs_ip, "STOP", 3)
 
-            # Drei Versuche, ein STOP an den Verfolger zu senden
-            for i in range(0,3):
-                sock.sendto("STOP", (purs_ip, 5005))
-
-                try:
-                    mesg, addr = sock.recvfrom(1024)
-                except socket.timeout:
-                    pass
-
-                if mesg.startswith("ACK"):
-                    break
-
-            # Warteprozess wird gestartet; dieser wartet, bis Hindernis verschwindet
-            p = Process(name="wait_barrier", target=wait_barrier, args=(0.5*args.distref,))
-            p.start()
+            if is_follower:
+                # Warten, bis START empfangen
+                p = Process(name="wait", target=wait, args=(0.03,))
+                p.start()
+            else:
+                # Warten, bis Hindernis verschwunden
+                p = Process(name="wait_barrier", target=wait_barrier, args=(0.5*args.distref,))
+                p.start()
 
         else:
-            # Hindernis ist weg (den Warteprozess war tot), es kann weitergefahren werden
+            # Hindernis ist weg, sende START
             p = Process(name="follow_line", target=follow_line, args=fl_args)
             p.start()
+
+            send(sock, purs_ip, "START", 3)
 
