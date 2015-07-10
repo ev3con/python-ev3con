@@ -98,11 +98,9 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
 
 def wait_barrier(distref=0.0):
     us = UltrasonicSensor()
-
     while True:
         if us.dist_cm > distref:
             return
-
         time.sleep(0.03)
 
 def stop_all_motors():
@@ -117,9 +115,9 @@ if __name__ == "__main__":
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
     parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )
-    parser.add_argument( "-distref", dest="distref", type=float, default=30.0 ) # Abstand in cm
-    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=0.0 )
-    parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )
+    parser.add_argument( "-distref", dest="distref", type=float, default=30.0 )         # Abstand in cm
+    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=0.0 )          # Maximale Zuckeldauer
+    parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )    # zur Verlaengerung der Zyklusdauer
     parser.add_argument( "-lKp", dest="lKp", type=float, default=3.5 )
     parser.add_argument( "-lKi", dest="lKi", type=float, default=0.0 )
     parser.add_argument( "-lKd", dest="lKd", type=float, default=2.0 )
