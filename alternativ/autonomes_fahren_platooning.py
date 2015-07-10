@@ -35,12 +35,18 @@ if __name__ == "__main__":
     # Adressvariablen erstellen und Leader finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
-    leader = socket.sendto("WHOS", (broadcast,5005))[1][0]
     platoon = []
+    try:
+        sock.sendto("WHOS", (broadcast,5005))
+        leader = sock.recvfrom(255)[1][0]
+    except socket.timeout:
+        leader = None
 
     # Fahrt beginnen, dazu wird Steuerungsprozess parallel gestartet
     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
     p.start()
+
+    lasttime = time.time()
 
     try:
         # Endlosschleife, darin erfolgt die Kommunikation und die Verwaltung des Steuerungsprozesses
@@ -50,9 +56,13 @@ if __name__ == "__main__":
             except socket.timeout:
                 mesg = "None"
 
-            print "Empfangene Nachricht: " + mesg
+            print "Empfangen [" + str((time.time() - lasttime) * 1000) "ms] von " + addr[0] + ": '" + mesg + "'"
+            lasttime = time.time()
 
             mesg = mesg.split(":")
+
+            if not mesg[0] == "ACK":
+                sock.sendto("ACK", (addr[0],5005))
 
             if mesg[0] == "STOP" and ownaddr in mesg:
                 if p.name == "follow_line":
@@ -68,28 +78,33 @@ if __name__ == "__main__":
                     p.start()
 
             elif mesg[0] == "WHOS" and leader == None:
-                if not addr[0] in platoon:
-                    platoon.append(addr[0])
+                if addr[0] in platoon:
+                    platoon.remove(addr[0])
+                platoon.append(addr[0])
 
             elif mesg[0] == "BARRIER":
-                socket.sendto("STOP:" + ":".join(platoon(platoon.index(addr[0])+1:)), (broadcast,5005))
+                sock.sendto("STOP:" + ":".join( platoon( platoon.index(addr[0]) : ) ), (broadcast,5005))
+
+            elif mesg[0] == "PATHCLEAR":
+                sock.sendto("START:" + ":".join( platoon( platoon.index(addr[0]) : ) ), (broadcast,5005))
 
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":
-                    if leader == None:
+                    if leader == None: # Bin selbst leader, sende STOP an alle
                         sock.sendto("STOP:" + ":".join(platoon), (broadcast,5005))
                         p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
                         p.start()
-                    else:
+                    else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         sock.sendto("BARRIER", (leader,5005))
-                        p = Process(name="wait", target=wait, args=(0.03,))
-                        p.start()
 
                 elif p.name == "wait_barrier":
-                    p = Process(name="follow_line", target=follow_line, args=follow_line_args)
-                    p.start()
-                    sock.sendto("START:" + ":".join(platoon), (broadcast,5005))
+                    if leader == None: # Bin selbst leader, sende START an alle
+                        sock.sendto("START:" + ":".join(platoon), (broadcast,5005))
+                        p = Process(name="follow_line", target=follow_line, args=follow_line_args)
+                        p.start()
+                    else: # Sende Information ueber Hindernis an leader, dieser sendet START an alle Betroffenen
+                        sock.sendto("PATHCLEAR", (leader,5005))
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()

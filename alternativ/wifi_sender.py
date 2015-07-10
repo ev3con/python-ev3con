@@ -10,4 +10,3 @@ sock = socket.socket(type=socket.SOCK_DGRAM)
 sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
 sock.sendto(args.MESSAGE, (args.DEST_IP,args.DEST_PORT))
 sock.close()
-

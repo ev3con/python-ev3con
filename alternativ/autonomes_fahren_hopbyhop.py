@@ -54,6 +54,8 @@ if __name__ == "__main__":
     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
     p.start()
 
+    lasttime = time.time()
+
     try:
         # Endlosschleife, darin erfolgt die Kommunikation und die Verwaltung des Steuerungsprozesses
         while True:
@@ -62,7 +64,8 @@ if __name__ == "__main__":
             except socket.timeout:
                 mesg = "None"
 
-            print "Empfangene Nachricht: " + mesg
+            print "Empfangen [" + str((time.time() - lasttime) * 1000) "ms] von " + addr[0] + ": '" + mesg + "'"
+            lasttime = time.time()
 
             mesg = mesg.split(":")
 
@@ -79,6 +82,7 @@ if __name__ == "__main__":
                     if not send(sock, backcar, "STOP", 3):
                         # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
                         backcar = send(sock, broadcast, "LOST:" + backcar, 3)
+                        send(sock, backcar, "STOP", 3)
 
             elif mesg[0] == "START":
                 if p.name == "wait":
@@ -89,6 +93,7 @@ if __name__ == "__main__":
                     if not send(sock, backcar, "START", 3):
                         # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
                         backcar = send(sock, broadcast, "LOST:" + backcar, 3)
+                        send(sock, backcar, "START", 3)
 
             elif mesg[0] == "LOST" and frontcar == mesg[1]:
                 frontcar = addr[0]
