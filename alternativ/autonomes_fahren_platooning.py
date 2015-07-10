@@ -6,19 +6,6 @@ def wait(cycledelay=0.03):
     while True:
         time.sleep(cycledelay)
 
-def send(sock, ip="127.0.0.1", mesg="spameggsausageandspam", tries=3):
-    for i in range(0,tries):
-        sock.sendto(mesg, (ip,5005))
-        rply = ""
-        addr = [""]
-        try:
-            rply, addr = sock.recvfrom(255)
-        except socket.timeout:
-            pass
-        if rply.startswith("ACK"):
-            return addr[0]
-    return None
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
@@ -45,10 +32,11 @@ if __name__ == "__main__":
     sock.bind((socket.INADDR_ANY,5005))
     sock.settimeout(0.25)
 
-    # Adressvariablen erstellen und Vordermann finden, falls vorhanden
+    # Adressvariablen erstellen und Leader finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
-    frontcar = send(sock, broadcast, "WHOS", 3)
-    backcar = None
+    ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
+    leader = socket.sendto("WHOS", (broadcast,5005))[1][0]
+    platoon = []
 
     # Fahrt beginnen, dazu wird Steuerungsprozess parallel gestartet
     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
@@ -66,51 +54,42 @@ if __name__ == "__main__":
 
             mesg = mesg.split(":")
 
-            if not mesg[0] == "ACK":
-                sock.sendto("ACK", (addr[0],5005))
-
-            if mesg[0] == "STOP":
+            if mesg[0] == "STOP" and ownaddr in mesg:
                 if p.name == "follow_line":
                     p.terminate()
                     stop_all_motors()
                     p = Process(name="wait", target=wait, args=(0.03,))
                     p.start()
-                if not backcar == None:
-                    if not send(sock, backcar, "STOP", 3):
-                        # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
-                        backcar = send(sock, broadcast, "LOST:" + backcar, 3)
 
-            elif mesg[0] == "START":
-                if p.name == "wait":
+            elif mesg[0] == "START" and ownaddr in mesg:
+                if not p.name == "follow_line":
                     p.terminate()
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
-                if not backcar == None:
-                    if not send(sock, backcar, "START", 3):
-                        # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
-                        backcar = send(sock, broadcast, "LOST:" + backcar, 3)
 
-            elif mesg[0] == "LOST" and frontcar == mesg[1]:
-                frontcar = addr[0]
+            elif mesg[0] == "WHOS" and leader == None:
+                if not addr[0] in platoon:
+                    platoon.append(addr[0])
 
-            elif mesg[0] == "WHOS" and backcar == None:
-                backcar = addr[0]
+            elif mesg[0] == "BARRIER":
+                socket.sendto("STOP:" + ":".join(platoon(platoon.index(addr[0])+1:)), (broadcast,5005))
 
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":
-                    send(sock, args.pursuer, "STOP", 3)
-
-                    # Warten, bis Hindernis verschwunden
-                    p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
-                    p.start()
+                    if leader == None:
+                        sock.sendto("STOP:" + ":".join(platoon), (broadcast,5005))
+                        p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
+                        p.start()
+                    else:
+                        sock.sendto("BARRIER", (leader,5005))
+                        p = Process(name="wait", target=wait, args=(0.03,))
+                        p.start()
 
                 elif p.name == "wait_barrier":
-                    # Hindernis ist weg, sende START
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
-
-                    send(sock, args.pursuer, "START", 3)
+                    sock.sendto("START:" + ":".join(platoon), (broadcast,5005))
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()

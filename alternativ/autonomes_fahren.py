@@ -91,7 +91,7 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
 
             print "Zyklusdauer: " + str( ( time.time() - cycle_t ) * 1000 ) + "ms"
 
-    except KeyboardInterrupt:
+    except (KeyboardInterrupt, SystemExit):
         ml.stop()
         mr.stop()
         print "Programm wurde beendet"
