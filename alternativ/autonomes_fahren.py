@@ -27,7 +27,7 @@ class PID:
 
         return self.correction
 
-def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, timeref=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
+def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycledelay=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
     cycle_t = 0.0
     standing_t = 0.0
 
@@ -68,7 +68,7 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, timeref=0.0, lKp=
                 ml.run_forever( (-1) * ( Vref - pid_dist.correction + pid_line.correction ) )
                 mr.run_forever( (-1) * ( Vref - pid_dist.correction ) )
 
-            if timeref > 0:
+            if waitmax > 0:
                 # Startzeit des Zuckelns merken
                 if abs( Vref - pid_dist.correction ) < 100 and not standing_t:
                     standing_t = time.time()
@@ -76,14 +76,18 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, timeref=0.0, lKp=
                 if abs( Vref - pid_dist.correction ) > 100 and standing_t:
                     standing_t = 0
 
-                # Fahrtsteuerung komplett abschalten, wenn mind. <timeref> Sekunden gezuckelt wurde
-                if standing_t and ( time.time() - standing_t ) > timeref:
+                # Fahrtsteuerung komplett abschalten, wenn mind. <waitmax> Sekunden gezuckelt wurde
+                if standing_t and ( time.time() - standing_t ) > waitmax:
                     ml.stop()
                     mr.stop()
                     led.left.color = LED.COLOR.RED
                     led.right.color = LED.COLOR.RED
                     hupe.play(100,500)
                     return
+
+            # Hier wird die Zyklusdauer kuenstlich verlaengert, falls gefordert
+            if cycledelay > 0:
+                time.sleep(cycledelay)
 
             print "Zyklusdauer: " + str( ( time.time() - cycle_t ) * 1000 ) + "ms"
 
@@ -114,7 +118,8 @@ if __name__ == "__main__":
     parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )
     parser.add_argument( "-distref", dest="distref", type=float, default=30.0 ) # Abstand in cm
-    parser.add_argument( "-timeref", dest="timeref", type=float, default=0.0 )
+    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=0.0 )
+    parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )
     parser.add_argument( "-lKp", dest="lKp", type=float, default=3.5 )
     parser.add_argument( "-lKi", dest="lKi", type=float, default=0.0 )
     parser.add_argument( "-lKd", dest="lKd", type=float, default=2.0 )
@@ -123,5 +128,4 @@ if __name__ == "__main__":
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     args = parser.parse_args( sys.argv[1:] )
 
-    follow_line(args.Vref, args.colmax, args.colmin, args.distref, args.timeref, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
-
+    follow_line(args.Vref, args.colmax, args.colmin, args.distref, args.waitmax, args.cycledelay, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
