@@ -100,7 +100,8 @@ if __name__ == "__main__":
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":
-                    send(sock, backcar, "STOP", 3)
+                    if not backcar == None:
+                        send(sock, backcar, "STOP", 3)
 
                     # Warten, bis Hindernis verschwunden
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
@@ -111,7 +112,8 @@ if __name__ == "__main__":
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
 
-                    send(sock, backcar, "START", 3)
+                    if not backcar == None:
+                        send(sock, backcar, "START", 3)
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()
