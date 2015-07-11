@@ -62,6 +62,7 @@ if __name__ == "__main__":
             try:
                 mesg, addr = sock.recvfrom(255)
             except socket.timeout:
+		addr = "None"
                 mesg = "None"
 
             print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
