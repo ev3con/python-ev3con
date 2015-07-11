@@ -29,7 +29,7 @@ if __name__ == "__main__":
     # Socket erstellen und an eigene IPs (inkl. Broadcast) binden
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.bind((socket.INADDR_ANY,5005))
+    sock.bind(("0.0.0.0",5005))
     sock.settimeout(0.25)
 
     # Adressvariablen erstellen und Leader finden, falls vorhanden
@@ -56,7 +56,7 @@ if __name__ == "__main__":
             except socket.timeout:
                 mesg = "None"
 
-            print "Empfangen [" + str((time.time() - lasttime) * 1000) "ms] von " + addr[0] + ": '" + mesg + "'"
+            print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
             lasttime = time.time()
 
             mesg = mesg.split(":")
@@ -83,10 +83,10 @@ if __name__ == "__main__":
                 platoon.append(addr[0])
 
             elif mesg[0] == "BARRIER":
-                sock.sendto("STOP:" + ":".join( platoon( platoon.index(addr[0]) : ) ), (broadcast,5005))
+                sock.sendto("STOP:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
 
             elif mesg[0] == "PATHCLEAR":
-                sock.sendto("START:" + ":".join( platoon( platoon.index(addr[0]) : ) ), (broadcast,5005))
+                sock.sendto("START:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
 
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():

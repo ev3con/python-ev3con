@@ -7,7 +7,7 @@ if __name__ == "__main__":
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
-    sock.bind((socket.INADDR_ANY,5005))
+    sock.bind(("0.0.0.0",5005))
     sock.settimeout(0.25)
 
     broadcast = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]["broadcast"]
@@ -22,7 +22,7 @@ if __name__ == "__main__":
             except socket.timeout:
                 mesg = "None"
 
-            print "Empfangen [" + str((time.time() - lasttime) * 1000) "ms] von " + addr[0] + ": '" + mesg + "'"
+            print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
             lasttime = time.time()
 
             mesg = mesg.split(":")
@@ -30,7 +30,7 @@ if __name__ == "__main__":
             if not mesg[0] == "ACK":
                 mesg = "ACK"
                 sock.sendto(mesg, (addr[0],5005))
-                print "Gesendet [" + str((time.time() - lasttime) * 1000) "ms] an " + addr[0] + ": '" + mesg + "'"
+                print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": '" + mesg + "'"
                 lasttime = time.time()
 
             elif mesg[0] == "WHOS" and leader == None:
@@ -39,15 +39,15 @@ if __name__ == "__main__":
                     platoon.append(addr[0])
 
             elif mesg[0] == "BARRIER":
-                mesg = "STOP:" + ":".join( platoon( platoon.index(addr[0]) : ) )
+                mesg = "STOP:" + ":".join( platoon[platoon.index(addr[0]):] )
                 sock.sendto(mesg, (broadcast,5005))
-                print "Gesendet [" + str((time.time() - lasttime) * 1000) "ms] an " + broadcast + ": '" + mesg + "'"
+                print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + broadcast + ": '" + mesg + "'"
                 lasttime = time.time()
 
             elif mesg[0] == "PATHCLEAR":
-                mesg = "START:" + ":".join( platoon( platoon.index(addr[0]) : ) )
+                mesg = "START:" + ":".join( platoon[platoon.index(addr[0]):] )
                 sock.sendto(mesg, (broadcast,5005))
-                print "Gesendet [" + str((time.time() - lasttime) * 1000) "ms] an " + broadcast + ": '" + mesg + "'"
+                print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + broadcast + ": '" + mesg + "'"
                 lasttime = time.time()
 
     except (KeyboardInterrupt, SystemExit):
