@@ -96,7 +96,7 @@ if __name__ == "__main__":
                 if p.name == "follow_line":
                     if leader == None: # Bin selbst leader, sende STOP an alle
                         sock.sendto("STOP:" + ":".join(platoon), (broadcast,5005))
-                        p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
+                        p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
                         p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         sock.sendto("BARRIER", (leader,5005))

@@ -104,7 +104,7 @@ if __name__ == "__main__":
                         send(sock, backcar, "STOP", 3)
 
                     # Warten, bis Hindernis verschwunden
-                    p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
+                    p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
                     p.start()
 
                 elif p.name == "wait_barrier":

@@ -96,11 +96,20 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
         mr.stop()
         print "Programm wurde beendet"
 
-def wait_barrier(distref=0.0):
+def wait_barrier(distref=0.0, waitmax=0.0):
     us = UltrasonicSensor()
+    pathclear_t = 0.0
+
     while True:
-        if us.dist_cm > distref:
+        if us.dist_cm > distref and not pathclear_t:
+            pathclear_t = time.time()
+
+        if us.dist_cm < distref and pathclear_t:
+            pathclear_t = 0.0
+
+        if pathclear_t and (time.time() - pathclear_t) > waitmax:
             return
+
         time.sleep(0.03)
 
 def stop_all_motors():
