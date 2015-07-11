@@ -35,7 +35,11 @@ if __name__ == "__main__":
     platoon = []
     try:
         sock.sendto("WHOS", (broadcast,5005))
-        leader = sock.recvfrom(255)[1][0]
+        mesg, addr = sock.recvfrom(255)
+        if addr[0] == ownaddr:
+            mesg, addr = sock.recvfrom(255)
+        if mesg.startswith("ACK"):
+            leader = addr[0]
     except socket.timeout:
         leader = None
 
