@@ -77,7 +77,8 @@ if __name__ == "__main__":
                     if not send(sock, backcar, "STOP", 3):
                         # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
                         backcar = send(sock, broadcast, "LOST:" + backcar, 3)
-                        send(sock, backcar, "STOP", 3)
+                        if not backcar == None:
+                            send(sock, backcar, "STOP", 3)
 
             elif mesg[0] == "START":
                 sock.sendto("ACK", (addr[0],5005))
@@ -88,7 +89,8 @@ if __name__ == "__main__":
                     if not send(sock, backcar, "START", 3):
                         # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
                         backcar = send(sock, broadcast, "LOST:" + backcar, 3)
-                        send(sock, backcar, "START", 3)
+                        if not backcar == None:
+                            send(sock, backcar, "START", 3)
 
             elif mesg[0] == "LOST" and frontcar == mesg[1]:
                 sock.sendto("ACK", (addr[0],5005))
