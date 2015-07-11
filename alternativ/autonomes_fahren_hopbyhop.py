@@ -34,7 +34,7 @@ if __name__ == "__main__":
     parser.add_argument( "-dKi", dest="dKi", type=float, default=0.0 )
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
-    parser.add_argument( "-timeout", dest="timeout", type=float, defualt=0.25 )
+    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )
     args = parser.parse_args( sys.argv[1:] )
 
     # Sammlung der Argumente fuer die Funktion follow_line
