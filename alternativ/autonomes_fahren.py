@@ -107,7 +107,7 @@ def stop_all_motors():
     for p in [Motor.PORT.A, Motor.PORT.B, Motor.PORT.C, Motor.PORT.D]:
         try:
             Motor(port=p).stop()
-        except Motor.NoSuchMotorError:
+        except NoSuchMotorError:
             pass
 
 if __name__ == "__main__":
