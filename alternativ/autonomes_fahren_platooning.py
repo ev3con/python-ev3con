@@ -2,10 +2,6 @@ import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
 from autonomes_fahren import *
 
-def wait(cycledelay=0.03):
-    while True:
-        time.sleep(cycledelay)
-
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
@@ -70,12 +66,12 @@ if __name__ == "__main__":
                 if p.name == "follow_line":
                     p.terminate()
                     stop_all_motors()
-                    p = Process(name="wait", target=wait, args=(0.03,))
-                    p.start()
+                    p = Process(name="wait")
 
             elif mesg[0] == "START" and ownaddr in mesg:
                 if not p.name == "follow_line":
-                    p.terminate()
+                    if p.name == "wait_barrier":
+                        p.terminate()
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
 

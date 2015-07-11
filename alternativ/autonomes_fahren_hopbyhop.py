@@ -2,10 +2,6 @@ import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
 from autonomes_fahren import *
 
-def wait(cycledelay=0.03):
-    while True:
-        time.sleep(cycledelay)
-
 def send(sock, ip="127.0.0.1", mesg="spameggsausageandspam", tries=3):
     for i in range(0,tries):
         sock.sendto(mesg, (ip,5005))
@@ -78,8 +74,7 @@ if __name__ == "__main__":
                 if p.name == "follow_line":
                     p.terminate()
                     stop_all_motors()
-                    p = Process(name="wait", target=wait, args=(0.03,))
-                    p.start()
+                    p = Process(name="wait")
                 if not backcar == None:
                     if not send(sock, backcar, "STOP", 3):
                         # Falls Kontakt zu Hintermann verloren, nehme dessen Hintermann
@@ -88,7 +83,6 @@ if __name__ == "__main__":
 
             elif mesg[0] == "START":
                 if p.name == "wait":
-                    p.terminate()
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
                 if not backcar == None:
@@ -106,7 +100,7 @@ if __name__ == "__main__":
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":
-                    send(sock, args.pursuer, "STOP", 3)
+                    send(sock, backcar, "STOP", 3)
 
                     # Warten, bis Hindernis verschwunden
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,))
@@ -117,7 +111,7 @@ if __name__ == "__main__":
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
 
-                    send(sock, args.pursuer, "START", 3)
+                    send(sock, backcar, "START", 3)
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()
