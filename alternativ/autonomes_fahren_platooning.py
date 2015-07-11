@@ -61,34 +61,35 @@ if __name__ == "__main__":
             print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
             lasttime = time.time()
 
-            mesg = mesg.split(":")
+            if not addr[0] == ownaddr and not mesg == "None":
+                mesg = mesg.split(":")
 
-            if not mesg[0] == "ACK" and not mesg[0] == "None":
-                sock.sendto("ACK", (addr[0],5005))
+                if not mesg[0] == "ACK":
+                    sock.sendto("ACK", (addr[0],5005))
 
-            if mesg[0] == "STOP" and ownaddr in mesg:
-                if p.name == "follow_line":
-                    p.terminate()
-                    stop_all_motors()
-                    p = Process(name="wait")
-
-            elif mesg[0] == "START" and ownaddr in mesg:
-                if not p.name == "follow_line":
-                    if p.name == "wait_barrier":
+                if mesg[0] == "STOP" and ownaddr in mesg:
+                    if p.name == "follow_line":
                         p.terminate()
-                    p = Process(name="follow_line", target=follow_line, args=follow_line_args)
-                    p.start()
+                        stop_all_motors()
+                        p = Process(name="wait")
 
-            elif mesg[0] == "WHOS" and leader == None:
-                if addr[0] in platoon:
-                    platoon.remove(addr[0])
-                platoon.append(addr[0])
+                elif mesg[0] == "START" and ownaddr in mesg:
+                    if not p.name == "follow_line":
+                        if p.name == "wait_barrier":
+                            p.terminate()
+                        p = Process(name="follow_line", target=follow_line, args=follow_line_args)
+                        p.start()
 
-            elif mesg[0] == "BARRIER":
-                sock.sendto("STOP:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
+                elif mesg[0] == "WHOS" and leader == None:
+                    if addr[0] in platoon:
+                        platoon.remove(addr[0])
+                    platoon.append(addr[0])
 
-            elif mesg[0] == "PATHCLEAR":
-                sock.sendto("START:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
+                elif mesg[0] == "BARRIER":
+                    sock.sendto("STOP:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
+
+                elif mesg[0] == "PATHCLEAR":
+                    sock.sendto("START:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
 
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
             if not p.is_alive():
