@@ -43,7 +43,7 @@ if __name__ == "__main__":
                         platoon.append(addr[0])
 
                 elif mesg[0] == "BARRIER":
-                    mesg = "STOP:" + ":".join( platoon[platoon.index(addr[0]):] )
+                    mesg = "STOP:" + ":".join( platoon[platoon.index(addr[0])+1:] )
                     sock.sendto(mesg, (broadcast,5005))
                     print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + broadcast + ": '" + mesg + "'"
                     lasttime = time.time()

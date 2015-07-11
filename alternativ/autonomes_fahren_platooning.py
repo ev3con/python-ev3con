@@ -71,12 +71,12 @@ if __name__ == "__main__":
                     if p.name == "follow_line":
                         p.terminate()
                         stop_all_motors()
-                        p = Process(name="wait")
+                        p = Process(name="wait", target=time.sleep, args=(0.1,))
+                        p.start()
 
                 elif mesg[0] == "START" and ownaddr in mesg:
-                    if not p.name == "follow_line":
-                        if p.name == "wait_barrier":
-                            p.terminate()
+                    if not ( p.name == "follow_line"  and p.is_alive() ):
+                        p.terminate()
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
 
@@ -86,7 +86,7 @@ if __name__ == "__main__":
                     platoon.append(addr[0])
 
                 elif mesg[0] == "BARRIER":
-                    sock.sendto("STOP:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
+                    sock.sendto("STOP:" + ":".join( platoon[platoon.index(addr[0])+1:] ), (broadcast,5005))
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("START:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
@@ -96,10 +96,10 @@ if __name__ == "__main__":
                 if p.name == "follow_line":
                     if leader == None: # Bin selbst leader, sende STOP an alle
                         sock.sendto("STOP:" + ":".join(platoon), (broadcast,5005))
-                        p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
-                        p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         sock.sendto("BARRIER", (leader,5005))
+                    p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
+                    p.start()
 
                 elif p.name == "wait_barrier":
                     if leader == None: # Bin selbst leader, sende START an alle

@@ -67,10 +67,8 @@ if __name__ == "__main__":
 
             mesg = mesg.split(":")
 
-            if not mesg[0] == "ACK" and not mesg[0] == "None":
-                sock.sendto("ACK", (addr[0],5005))
-
             if mesg[0] == "STOP":
+                sock.sendto("ACK", (addr[0],5005))
                 if p.name == "follow_line":
                     p.terminate()
                     stop_all_motors()
@@ -82,6 +80,7 @@ if __name__ == "__main__":
                         send(sock, backcar, "STOP", 3)
 
             elif mesg[0] == "START":
+                sock.sendto("ACK", (addr[0],5005))
                 if p.name == "wait":
                     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                     p.start()
@@ -92,9 +91,11 @@ if __name__ == "__main__":
                         send(sock, backcar, "START", 3)
 
             elif mesg[0] == "LOST" and frontcar == mesg[1]:
+                sock.sendto("ACK", (addr[0],5005))
                 frontcar = addr[0]
 
             elif mesg[0] == "WHOS" and backcar == None:
+                sock.sendto("ACK", (addr[0],5005))
                 backcar = addr[0]
 
             # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
