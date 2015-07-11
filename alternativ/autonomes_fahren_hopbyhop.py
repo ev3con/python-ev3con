@@ -34,6 +34,7 @@ if __name__ == "__main__":
     parser.add_argument( "-dKi", dest="dKi", type=float, default=0.0 )
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
+    parser.add_argument( "-timeout", dest="timeout", type=float, defualt=0.25 )
     args = parser.parse_args( sys.argv[1:] )
 
     # Sammlung der Argumente fuer die Funktion follow_line
@@ -43,7 +44,7 @@ if __name__ == "__main__":
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.bind(("0.0.0.0",5005))
-    sock.settimeout(0.25)
+    sock.settimeout(args.timeout)
 
     # Adressvariablen erstellen und Vordermann finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
@@ -70,7 +71,7 @@ if __name__ == "__main__":
 
             mesg = mesg.split(":")
 
-            if not mesg[0] == "ACK":
+            if not mesg[0] == "ACK" and not mesg[0] == "None":
                 sock.sendto("ACK", (addr[0],5005))
 
             if mesg[0] == "STOP":

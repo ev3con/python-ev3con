@@ -3,12 +3,13 @@ import sys, time, argparse, socket, netifaces
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
+    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )
     args = parser.parse_args( sys.argv[1:] )
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
     sock.bind(("0.0.0.0",5005))
-    sock.settimeout(0.25)
+    sock.settimeout(args.timeout)
 
     broadcast = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]["broadcast"]
     platoon = []
@@ -28,7 +29,7 @@ if __name__ == "__main__":
 
             mesg = mesg.split(":")
 
-            if not mesg[0] == "ACK":
+            if not mesg[0] == "ACK" and not mesg[0] == "None":
                 mesg = "ACK"
                 sock.sendto(mesg, (addr[0],5005))
                 print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": '" + mesg + "'"
