@@ -17,6 +17,16 @@ if __name__ == "__main__":
     broadcast = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = broadcast = netifaces.ifaddresses(iface)[netifaces.AF_INET][0]["addr"]
     platoon = []
+    try:
+        sock.sendto("WHOS", (broadcast,5005))
+        mesg, addr = sock.recvfrom(255)
+        if addr[0] == ownaddr:
+            mesg, addr = sock.recvfrom(255)
+        if mesg.startswith("ACK"):
+            print "Es existiert bereits ein Leader des Konvoys!"
+            sys.exit(1)
+    except socket.timeout:
+        pass
 
     lasttime = time.time()
 
@@ -34,16 +44,16 @@ if __name__ == "__main__":
             if not addr[0] == ownaddr and not mesg == "None":
                 mesg = mesg.split(":")
 
-                if not mesg[0] == "ACK":
-                    mesg = "ACK"
-                    sock.sendto(mesg, (addr[0],5005))
-                    print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": '" + mesg + "'"
+                elif mesg[0] == "WHOS" and leader == None:
+                    sock.sendto("ACK", (addr[0],5005))
+
+                    print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": 'ACK'"
                     lasttime = time.time()
 
-                elif mesg[0] == "WHOS" and leader == None:
                     if addr[0] in platoon:
                         platoon.remove(addr[0])
-                        platoon.append(addr[0])
+
+                    platoon.append(addr[0])
 
                 elif mesg[0] == "BARRIER":
                     mesg = "STOP:" + ":".join( platoon[platoon.index(addr[0])+1:] )

@@ -22,6 +22,8 @@ if __name__ == "__main__":
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
     parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )         # Standardtimeout des sockets
+    parser.add_argument( "-start_idle", dest="start_idle", action="store_true", default=False )
+    args = parser.parse_args( sys.argv[1:] )
 
     # Sammlung der Argumente fuer die Funktion follow_line
     follow_line_args = (args.Vref, args.colmax, args.colmin, args.distref, args.waitmax, args.cycledelay, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
@@ -46,17 +48,21 @@ if __name__ == "__main__":
     except socket.timeout:
         leader = None
 
-    # Fahrt beginnen, dazu wird Steuerungsprozess parallel gestartet
-    p = Process(name="follow_line", target=follow_line, args=follow_line_args)
-    p.start()
-
     hupe = Tone()
+
+    # Falls die Option start_idle nicht gesetzt ist, fahre direkt los
+    if not args.start_idle:
+        p = Process(name="follow_line", target=follow_line, args=follow_line_args)
+        p.start()
+    else:
+        p = Process(name="wait", target=time.sleep, args=(0.1,))
+        p.start()
 
     lasttime = time.time()
 
     try:
-        # Endlosschleife, darin erfolgt die Kommunikation und die Verwaltung des Steuerungsprozesses
         while True:
+            # Nachricht empfangen
             try:
                 mesg, addr = sock.recvfrom(255)
             except socket.timeout:
@@ -66,13 +72,14 @@ if __name__ == "__main__":
             print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
             lasttime = time.time()
 
+            # Nachricht auswerten
             if not addr[0] == ownaddr and not mesg == "None":
                 mesg = mesg.split(":")
 
-                if not mesg[0] == "ACK":
-                    sock.sendto("ACK", (addr[0],5005))
+                if len(mesg) < 2:
+                    mesg.append("")
 
-                if mesg[0] == "STOP" and ownaddr in mesg:
+                if mesg[0] == "STOP" and ( ownaddr in mesg or mesg[1] == "ALL" ):
                     if p.name == "follow_line":
                         p.terminate()
                         stop_all_motors()
@@ -80,13 +87,14 @@ if __name__ == "__main__":
                         p.start()
                     hupe.play(440,500)
 
-                elif mesg[0] == "START" and ownaddr in mesg:
+                elif mesg[0] == "START" and ( ownaddr in mesg or mesg[1] == "ALL" ):
                     if not ( p.name == "follow_line"  and p.is_alive() ):
                         p.terminate()
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
 
                 elif mesg[0] == "WHOS" and leader == None:
+                    sock.sendto("ACK", (addr[0],5005))
                     if addr[0] in platoon:
                         platoon.remove(addr[0])
                     platoon.append(addr[0])
@@ -97,11 +105,11 @@ if __name__ == "__main__":
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("START:" + ":".join( platoon[platoon.index(addr[0]):] ), (broadcast,5005))
 
-            # Der Steuerungsprozess wird ggf. mit Warteprozess ausgetauscht, wenn Hindernis vorhanden
+            # Steuerungsprozess ggf. mit Warteprozess austauschen, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":
                     if leader == None: # Bin selbst leader, sende STOP an alle
-                        sock.sendto("STOP:" + ":".join(platoon), (broadcast,5005))
+                        sock.sendto("STOP:ALL", (broadcast,5005))
                     else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         sock.sendto("BARRIER", (leader,5005))
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
@@ -109,7 +117,7 @@ if __name__ == "__main__":
 
                 elif p.name == "wait_barrier":
                     if leader == None: # Bin selbst leader, sende START an alle
-                        sock.sendto("START:" + ":".join(platoon), (broadcast,5005))
+                        sock.sendto("START:ALL", (broadcast,5005))
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet START an alle Betroffenen
