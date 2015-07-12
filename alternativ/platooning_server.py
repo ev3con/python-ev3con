@@ -1,5 +1,5 @@
 # platooning_server.py - Externer Server fuer Betrieb des Konvoys im Platooning-Modus
-# 2015-07-13, Hauptseminar IT, Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-13 - Hauptseminar IT - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse, socket, netifaces
 
@@ -46,14 +46,11 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "WHOS" and leader == None:
                     sock.sendto("ACK", (addr[0],5005))
-
-                    print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": 'ACK'"
-                    lasttime = time.time()
-
                     if addr[0] in platoon:
                         platoon.remove(addr[0])
-
                     platoon.append(addr[0])
+                    print "Gesendet [" + str((time.time() - lasttime) * 1000) + "ms] an " + addr[0] + ": 'ACK'"
+                    lasttime = time.time()
 
                 elif mesg[0] == "BARRIER":
                     mesg = "STOP:" + ":".join( platoon[platoon.index(addr[0])+1:] )
