@@ -1,15 +1,19 @@
+# autonomes_fahren_platooning.py - Linienverfolgung des Konvoys mit Kommunikation ueber Leader oder externem Server
+# 2015-07-13, Hauptseminar IT, Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+
 import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
+from ev3.ev3dev import Tone
 from autonomes_fahren import *
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
-    parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )
-    parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )
-    parser.add_argument( "-distref", dest="distref", type=float, default=30.0 )         # Abstand in cm
-    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=1.0 )          # Maximale Zuckelzeit
-    parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )    # zur Verlaengerung der Zyklusdauer
+    parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )           # Reflexionswert auf Hintergrund
+    parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )            # Reflexionswert auf Linie
+    parser.add_argument( "-distref", dest="distref", type=float, default=20.0 )         # Abstand in cm
+    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=1.0 )          # Maximale Zuckelzeit in Sekunden
+    parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )    # Verlaengerung der Zyklusdauer in Sekunden
     parser.add_argument( "-lKp", dest="lKp", type=float, default=3.5 )
     parser.add_argument( "-lKi", dest="lKi", type=float, default=0.0 )
     parser.add_argument( "-lKd", dest="lKd", type=float, default=2.0 )
@@ -17,8 +21,7 @@ if __name__ == "__main__":
     parser.add_argument( "-dKi", dest="dKi", type=float, default=0.0 )
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
-    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )
-    args = parser.parse_args( sys.argv[1:] )
+    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )         # Standardtimeout des sockets
 
     # Sammlung der Argumente fuer die Funktion follow_line
     follow_line_args = (args.Vref, args.colmax, args.colmin, args.distref, args.waitmax, args.cycledelay, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
@@ -47,6 +50,8 @@ if __name__ == "__main__":
     p = Process(name="follow_line", target=follow_line, args=follow_line_args)
     p.start()
 
+    hupe = Tone()
+
     lasttime = time.time()
 
     try:
@@ -73,6 +78,7 @@ if __name__ == "__main__":
                         stop_all_motors()
                         p = Process(name="wait", target=time.sleep, args=(0.1,))
                         p.start()
+                    hupe.play(440,500)
 
                 elif mesg[0] == "START" and ownaddr in mesg:
                     if not ( p.name == "follow_line"  and p.is_alive() ):

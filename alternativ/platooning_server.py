@@ -1,3 +1,6 @@
+# platooning_server.py - Externer Server fuer Betrieb des Konvoys im Platooning-Modus
+# 2015-07-13, Hauptseminar IT, Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+
 import sys, time, argparse, socket, netifaces
 
 if __name__ == "__main__":
