@@ -61,7 +61,7 @@ if __name__ == "__main__":
     # Adressvariablen erstellen und Vordermann finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
-    frontaddr = send(sock, broadcast, "WHOS", 3)
+    frontaddr = propagate(sock, broadcast, "WHOS")
     backaddr = None
 
     hupe = Tone()
