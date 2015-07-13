@@ -149,6 +149,9 @@ if __name__ == "__main__":
                     sock.sendto("ACK", (addr[0],5005))
                     order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
+                elif mesg[0] == "QUIT":
+                    sys.exit(1)
+
             # Steuerungsprozess ggf. mit Warteprozess austauschen, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":

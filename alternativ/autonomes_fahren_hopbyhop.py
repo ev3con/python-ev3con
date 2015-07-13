@@ -128,6 +128,9 @@ if __name__ == "__main__":
                     sock.sendto("ACK", (addr[0],5005))
                     backaddr = addr[0]
 
+                elif mesg[0] == "QUIT":
+                    sys.exit(0)
+
             # Steuerungsprozess ggf. mit Warteprozess austauschen, wenn Hindernis vorhanden
             if not p.is_alive():
                 if p.name == "follow_line":

@@ -56,6 +56,9 @@ if __name__ == "__main__":
                     sock.sendto("ACK", (addr[0],5005))
                     order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
+                elif mesg[0] == "QUIT":
+                    sys.exit(1)
+
     except (KeyboardInterrupt, SystemExit):
         sock.close()
         print "Programm wird beendet"
