@@ -26,7 +26,7 @@ def propagate(sock, dest_addr="127.0.0.1", dest_mesg="spameggsausageandspam", tr
         except socket.timeout:
             pass
         if from_mesg.startswith("ACK"):
-            return send(sock, dest_addr, dest_mesg, 3)
+            return propagate(sock, dest_addr, dest_mesg)
 
     return None
 
