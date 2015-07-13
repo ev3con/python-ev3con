@@ -5,8 +5,9 @@ import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
 from ev3.ev3dev import Tone
 from autonomes_fahren import *
+from autonomes_fahren_platooning import tell
 
-def propagate(sock, dest_addr="127.0.0.1", dest_mesg="spameggsausageandspam", tries=3):
+def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=3):
     from_mesg = ""
     from_addr = [""]
 
@@ -14,6 +15,8 @@ def propagate(sock, dest_addr="127.0.0.1", dest_mesg="spameggsausageandspam", tr
         sock.sendto(dest_mesg, (dest_addr,5005))
         try:
             from_mesg, from_addr = sock.recvfrom(255)
+            if from_addr[0] == ownaddr:
+                from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             pass
         if from_mesg.startswith("ACK"):
@@ -23,10 +26,12 @@ def propagate(sock, dest_addr="127.0.0.1", dest_mesg="spameggsausageandspam", tr
         sock.sendto("LOST:" + dest_addr, (dest_addr,5005))
         try:
             from_mesg, from_addr = sock.recvfrom(255)
+            if from_addr[0] == ownaddr:
+                from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             pass
         if from_mesg.startswith("ACK"):
-            return propagate(sock, dest_addr, dest_mesg)
+            return tell(sock, ownaddr, dest_addr, dest_mesg)
 
     return None
 
@@ -61,7 +66,7 @@ if __name__ == "__main__":
     # Adressvariablen erstellen und Vordermann finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
-    frontaddr = propagate(sock, broadcast, "WHOS")
+    frontaddr = tell(sock, ownaddr, broadcast, "WHOS")
     backaddr = None
 
     hupe = Tone()
@@ -97,22 +102,23 @@ if __name__ == "__main__":
 
                 if mesg[0] == "STOP":
                     sock.sendto("ACK", (addr[0],5005))
-                    if p.name == "follow_line":
+                    if not p.name = "wait":
                         p.terminate()
                         stop_all_motors()
                         p = Process(name="wait", target=time.sleep, args=(0.1,))
                         p.start()
                     if not backaddr == None:
-                        backaddr = propagate(sock, backaddr, "STOP")
-                    hupe.play(440,500)
+                        backaddr = propagate(sock, ownaddr, backaddr, "STOP")
+                    hupe.play(220,250)
 
                 elif mesg[0] == "START":
                     sock.sendto("ACK", (addr[0],5005))
-                    if p.name == "wait":
+                    if not ( p.name == "follow_line" and p.is_alive() ):
+                        p.terminate()
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
                     if not backaddr == None:
-                        backaddr = propagate(sock, backaddr, "START")
+                        backaddr = propagate(sock, ownaddr, backaddr, "START")
 
                 elif mesg[0] == "LOST" and frontaddr == mesg[1]:
                     sock.sendto("ACK", (addr[0],5005))
@@ -126,7 +132,7 @@ if __name__ == "__main__":
             if not p.is_alive():
                 if p.name == "follow_line":
                     if not backaddr == None:
-                        backaddr = propagate(sock, backaddr, "STOP")
+                        backaddr = propagate(sock, ownaddr, backaddr, "STOP")
 
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
                     p.start()
@@ -136,7 +142,7 @@ if __name__ == "__main__":
                     p.start()
 
                     if not backaddr == None:
-                        backaddr = propagate(sock, backaddr, "START")
+                        backaddr = propagate(sock, ownaddr, backaddr, "START")
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()
