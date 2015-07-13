@@ -21,8 +21,7 @@ if __name__ == "__main__":
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
     platoon = []
     if tell(sock, ownaddr, broadcast, "WHOS"):
-        print "Es existiert bereits ein Leader des Platoons!"
-        sys.exit(1)
+        sys.exit("Es existiert bereits ein Leader des Platoons!")
 
     lasttime = time.time()
 
@@ -57,7 +56,7 @@ if __name__ == "__main__":
                     order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
                 elif mesg[0] == "QUIT":
-                    sys.exit(1)
+                    sys.exit(0)
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()

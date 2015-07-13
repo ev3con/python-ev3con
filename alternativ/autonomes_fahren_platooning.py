@@ -150,7 +150,7 @@ if __name__ == "__main__":
                     order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
                 elif mesg[0] == "QUIT":
-                    sys.exit(1)
+                    sys.exit(0)
 
             # Steuerungsprozess ggf. mit Warteprozess austauschen, wenn Hindernis vorhanden
             if not p.is_alive():
