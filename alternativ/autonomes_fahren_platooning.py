@@ -23,6 +23,9 @@ def tell(sock, ownaddr, dest_addr, dest_mesg, tries=3):
     return None
 
 def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
+    if len(platoon) == 0:
+        return []
+
     missing = platoon
 
     sock.sendto(dest_mesg, (broadcast,5005))
@@ -80,14 +83,15 @@ if __name__ == "__main__":
     # Socket erstellen und an eigene IPs (inkl. Broadcast) binden
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 4096)
     sock.bind(("0.0.0.0",5005))
     sock.settimeout(args.timeout)
 
     # Adressvariablen erstellen und Leader finden, falls vorhanden
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
-    platoon = []
     leader = tell(sock, ownaddr, broadcast, "WHOS")
+    platoon = []
 
     hupe = Tone()
 
@@ -127,7 +131,7 @@ if __name__ == "__main__":
                         stop_all_motors()
                         p = Process(name="wait", target=time.sleep, args=(0.1,))
                         p.start()
-                    hupe.play(220,250)
+                    hupe.play(440,250)
 
                 elif mesg[0] == "START" and ( ownaddr in mesg or mesg[1] == "ALL" ):
                     sock.sendto("ACK", (addr[0],5005))
@@ -144,12 +148,12 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "BARRIER":
                     sock.sendto("ACK", (addr[0],5005))
-                    missing = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    missing = order(sock, ownaddr, broadcast, platoon[platoon.index(addr[0])+1:], "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
                     platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
-                    missing = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    missing = order(sock, ownaddr, broadcast, platoon[platoon.index(addr[0])+1:], "START:" + ":".join(platoon[platoon.index(addr[0])+1:]))
                     platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
                 elif mesg[0] == "QUIT":
@@ -170,10 +174,10 @@ if __name__ == "__main__":
                     if leader == None: # Bin selbst leader, sende START an alle
                         missing = order(sock, ownaddr, broadcast, platoon, "START:ALL")
                         platoon = [ comrade for comrade in platoon if not comrade in missing ]
-                        p = Process(name="follow_line", target=follow_line, args=follow_line_args)
-                        p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet START an alle Betroffenen
                         tell(sock, ownaddr, leader, "PATHCLEAR")
+                    p = Process(name="follow_line", target=follow_line, args=follow_line_args)
+                    p.start()
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()

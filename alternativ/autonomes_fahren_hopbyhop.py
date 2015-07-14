@@ -110,7 +110,7 @@ if __name__ == "__main__":
                         p.start()
                     if not backaddr == None:
                         backaddr = propagate(sock, ownaddr, backaddr, "STOP")
-                    hupe.play(220,250)
+                    hupe.play(440,250)
 
                 elif mesg[0] == "START":
                     sock.sendto("ACK", (addr[0],5005))
