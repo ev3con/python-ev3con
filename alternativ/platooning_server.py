@@ -1,5 +1,5 @@
 # platooning_server.py - Externer Server fuer Betrieb des Konvoys im Platooning-Modus
-# 2015-07-14 - Hauptseminar IT - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-14 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse, socket, netifaces
 from autonomes_fahren_platooning import tell, order
@@ -20,6 +20,7 @@ if __name__ == "__main__":
     broadcast = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["broadcast"]
     ownaddr = netifaces.ifaddresses(args.iface)[netifaces.AF_INET][0]["addr"]
     platoon = []
+
     if tell(sock, ownaddr, broadcast, "WHOS"):
         sys.exit("Es existiert bereits ein Leader des Platoons!")
 
@@ -53,12 +54,12 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "BARRIER":
                     sock.sendto("ACK", (addr[0],5005))
-                    missing = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    missing = order(sock, ownaddr, broadcast, platoon[platoon.index(addr[0])+1:], "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
                     platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
-                    missing = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    missing = order(sock, ownaddr, broadcast, platoon[platoon.index(addr[0])+1:], "START:" + ":".join(platoon[platoon.index(addr[0])+1:]))
                     platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
     except (KeyboardInterrupt, SystemExit):

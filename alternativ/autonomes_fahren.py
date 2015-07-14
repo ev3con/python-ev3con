@@ -1,5 +1,5 @@
 # autonomes_fahren.py - Automatische Linienverfolung unter Wahrung des Abstandes zum Vordemann oder Hindernis
-# 2015-07-14 - Hauptseminar IT - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-14 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse
 from ev3.ev3dev import *
