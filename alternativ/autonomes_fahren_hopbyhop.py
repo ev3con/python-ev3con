@@ -8,14 +8,13 @@ from autonomes_fahren import *
 from autonomes_fahren_platooning import tell
 
 def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=3):
-    from_mesg = ""
-    from_addr = [""]
-
     for i in range(0,tries):
         sock.sendto(dest_mesg, (dest_addr,5005))
         try:
+            from_mesg, from_addr = "", [""]
             from_mesg, from_addr = sock.recvfrom(255)
             if from_addr[0] == ownaddr:
+                from_mesg, from_addr = "", [""]
                 from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             pass
@@ -25,8 +24,10 @@ def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=3):
     for i in range(0,tries):
         sock.sendto("LOST:" + dest_addr, (dest_addr,5005))
         try:
+            from_mesg, from_addr = "", [""]
             from_mesg, from_addr = sock.recvfrom(255)
             if from_addr[0] == ownaddr:
+                from_mesg, from_addr = "", [""]
                 from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             pass

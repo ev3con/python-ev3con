@@ -7,14 +7,13 @@ from ev3.ev3dev import Tone
 from autonomes_fahren import *
 
 def tell(sock, ownaddr, dest_addr, dest_mesg, tries=3):
-    from_mesg = ""
-    from_addr = [""]
-
     for i in range(0,tries):
         sock.sendto(dest_mesg, (dest_addr,5005))
         try:
+            from_mesg, from_addr = "", [""]
             from_mesg, from_addr = sock.recvfrom(255)
             if from_addr[0] == ownaddr:
+                from_mesg, from_addr = "", [""]
                 from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             pass
@@ -24,16 +23,16 @@ def tell(sock, ownaddr, dest_addr, dest_mesg, tries=3):
     return None
 
 def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
-    answ = ""
-    addr = [""]
     missing = platoon
 
     sock.sendto(dest_mesg, (broadcast,5005))
 
     for comrade in platoon:
         try:
+            from_mesg, from_addr = "", [""]
             from_mesg, from_addr = sock.recvfrom(255)
             if from_addr[0] == ownaddr:
+                from_mesg, from_addr = "", [""]
                 from_mesg, from_addr = sock.recvfrom(255)
         except socket.timeout:
             break
@@ -44,8 +43,10 @@ def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
         for comrade in missing:
             sock.sendto(dest_mesg, (comrade,5005))
             try:
+                from_mesg, from_addr = "", [""]
                 from_mesg, from_addr = sock.recvfrom(255)
                 if from_addr[0] == ownaddr:
+                    from_mesg, from_addr = "", [""]
                     from_mesg, from_addr = sock.recvfrom(255)
             except socket.timeout:
                 pass
@@ -143,11 +144,11 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "BARRIER":
                     sock.sendto("ACK", (addr[0],5005))
-                    order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    platoon = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
-                    order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    platoon = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
                 elif mesg[0] == "QUIT":
                     sys.exit(0)
@@ -156,7 +157,7 @@ if __name__ == "__main__":
             if not p.is_alive():
                 if p.name == "follow_line":
                     if leader == None: # Bin selbst leader, sende STOP an alle
-                        order(sock, ownaddr, broadcast, platoon, "STOP:ALL")
+                        platoon = order(sock, ownaddr, broadcast, platoon, "STOP:ALL")
                     else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         tell(sock, ownaddr, leader, "BARRIER")
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
@@ -164,7 +165,7 @@ if __name__ == "__main__":
 
                 elif p.name == "wait_barrier":
                     if leader == None: # Bin selbst leader, sende START an alle
-                        order(sock, ownaddr, broadcast, platoon, "START:ALL")
+                        platoon = order(sock, ownaddr, broadcast, platoon, "START:ALL")
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet START an alle Betroffenen

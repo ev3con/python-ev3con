@@ -49,11 +49,11 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "BARRIER":
                     sock.sendto("ACK", (addr[0],5005))
-                    order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    platoon = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
-                    order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    platoon = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
 
                 elif mesg[0] == "QUIT":
                     sys.exit(0)
