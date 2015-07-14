@@ -103,7 +103,7 @@ if __name__ == "__main__":
 
                 if mesg[0] == "STOP":
                     sock.sendto("ACK", (addr[0],5005))
-                    if not p.name = "wait":
+                    if not p.name == "wait":
                         p.terminate()
                         stop_all_motors()
                         p = Process(name="wait", target=time.sleep, args=(0.1,))
