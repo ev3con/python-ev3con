@@ -53,7 +53,7 @@ def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
             if from_mesg.startswith("ACK") and from_addr[0] in missing:
                 missing.remove(from_addr[0])
 
-    return [ comrade for comrade in platoon if not comrade in missing ]
+    return missing
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
@@ -118,7 +118,7 @@ if __name__ == "__main__":
                 mesg = mesg.split(":")
 
                 if len(mesg) < 2:
-                    mesg.append("")
+                    mesg.append(ownaddr)
 
                 if mesg[0] == "STOP" and ( ownaddr in mesg or mesg[1] == "ALL" ):
                     sock.sendto("ACK", (addr[0],5005))
@@ -144,11 +144,13 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "BARRIER":
                     sock.sendto("ACK", (addr[0],5005))
-                    platoon = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    missing = order(sock, ownaddr, broadcast, platoon, "STOP:" + ":".join(platoon[platoon.index(addr[0])+1:]))
+                    platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
-                    platoon = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    missing = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
+                    platoon = [ comrade for comrade in platoon if not comrade in missing ]
 
                 elif mesg[0] == "QUIT":
                     sys.exit(0)
@@ -157,7 +159,8 @@ if __name__ == "__main__":
             if not p.is_alive():
                 if p.name == "follow_line":
                     if leader == None: # Bin selbst leader, sende STOP an alle
-                        platoon = order(sock, ownaddr, broadcast, platoon, "STOP:ALL")
+                        missing = order(sock, ownaddr, broadcast, platoon, "STOP:ALL")
+                        platoon = [ comrade for comrade in platoon if not comrade in missing ]
                     else: # Sende Information ueber Hindernis an leader, dieser sendet STOP an alle Betroffenen
                         tell(sock, ownaddr, leader, "BARRIER")
                     p = Process(name="wait_barrier", target=wait_barrier, args=(args.distref,1))
@@ -165,7 +168,8 @@ if __name__ == "__main__":
 
                 elif p.name == "wait_barrier":
                     if leader == None: # Bin selbst leader, sende START an alle
-                        platoon = order(sock, ownaddr, broadcast, platoon, "START:ALL")
+                        missing = order(sock, ownaddr, broadcast, platoon, "START:ALL")
+                        platoon = [ comrade for comrade in platoon if not comrade in missing ]
                         p = Process(name="follow_line", target=follow_line, args=follow_line_args)
                         p.start()
                     else: # Sende Information ueber Hindernis an leader, dieser sendet START an alle Betroffenen

@@ -34,8 +34,12 @@ if __name__ == "__main__":
                 mesg = "None"
                 addr = "None"
 
+            print "Platoon: " + str( platoon )
             print "Empfangen [" + str((time.time() - lasttime) * 1000) + "ms] von " + addr[0] + ": '" + mesg + "'"
             lasttime = time.time()
+
+            if mesg.startswith("QUIT"):
+                sys.exit(0)
 
             # Nachricht auswerten
             if not addr[0] == ownaddr and not mesg == "None":
@@ -54,9 +58,6 @@ if __name__ == "__main__":
                 elif mesg[0] == "PATHCLEAR":
                     sock.sendto("ACK", (addr[0],5005))
                     platoon = order(sock, ownaddr, broadcast, platoon, "START:" + ":".join(platoon[platoon.index(addr[0]):]))
-
-                elif mesg[0] == "QUIT":
-                    sys.exit(0)
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()
