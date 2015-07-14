@@ -38,7 +38,7 @@ def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
         except socket.timeout:
             break
         if from_mesg.startswith("ACK") and from_addr[0] in missing:
-            missing.remove(addr[0])
+            missing.remove(from_addr[0])
 
     for i in range(retries):
         for comrade in missing:
@@ -50,7 +50,7 @@ def order(sock, ownaddr, broadcast, platoon, dest_mesg, retries=2):
             except socket.timeout:
                 pass
             if from_mesg.startswith("ACK") and from_addr[0] in missing:
-                missing.remove(addr[0])
+                missing.remove(from_addr[0])
 
     return [ comrade for comrade in platoon if not comrade in missing ]
 
