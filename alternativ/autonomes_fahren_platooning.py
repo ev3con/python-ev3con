@@ -1,5 +1,5 @@
 # autonomes_fahren_platooning.py - Linienverfolgung des Konvoys mit Kommunikation ueber Leader oder externem Server
-# 2015-07-13 - Hauptseminar IT - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-14 - Hauptseminar IT - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
