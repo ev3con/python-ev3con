@@ -1,5 +1,5 @@
 # autonomes_fahren.py - Automatische Linienverfolung unter Wahrung des Abstandes zum Vordemann oder Hindernis
-# 2015-07-14 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-15 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse
 from ev3.ev3dev import *
@@ -30,9 +30,9 @@ class PID:
 
         return self.correction
 
-def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycledelay=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
+def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, Vtremble=0.0, timeout=0.0, cycledelay=0.0, lKp=0.0, lKi=0.0, lKd=0.0, dKp=0.0, dKi=0.0, dKd=0.0):
     cycle_t = 0.0
-    standing_t = 0.0
+    tremble_t = 0.0
 
     pid_line = PID(lKp, lKi, lKd)
     pid_dist = PID(dKp, dKi, dKd)
@@ -71,16 +71,16 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
                 ml.run_forever( (-1) * ( Vref - pid_dist.correction + pid_line.correction ) )
                 mr.run_forever( (-1) * ( Vref - pid_dist.correction ) )
 
-            if waitmax > 0:
+            if timeout:
                 # Startzeit des Zuckelns merken
-                if abs( Vref - pid_dist.correction ) < 100 and not standing_t:
-                    standing_t = time.time()
+                if abs( Vref - pid_dist.correction ) < Vtremble and not tremble_t:
+                    tremble_t = time.time()
 
-                if abs( Vref - pid_dist.correction ) > 100 and standing_t:
-                    standing_t = 0
+                if abs( Vref - pid_dist.correction ) > Vtremble and tremble_t:
+                    tremble_t = 0
 
-                # Fahrtsteuerung komplett abschalten, wenn mind. <waitmax> Sekunden gezuckelt wurde
-                if standing_t and ( time.time() - standing_t ) > waitmax:
+                # Fahrtsteuerung komplett abschalten, wenn mind. <timeout> Sekunden gezuckelt wurde
+                if tremble_t and ( time.time() - tremble_t ) > timeout:
                     ml.stop()
                     mr.stop()
                     led.left.color = LED.COLOR.RED
@@ -89,7 +89,7 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
                     return
 
             # Hier wird die Zyklusdauer kuenstlich verlaengert, falls gefordert
-            if cycledelay > 0:
+            if cycledelay:
                 time.sleep(cycledelay)
 
             print "Regelzyklus: " + str( ( time.time() - cycle_t ) * 1000 ) + "ms"
@@ -99,7 +99,7 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, waitmax=0.0, cycl
         mr.stop()
         print "Programm wurde beendet"
 
-def wait_barrier(distref=0.0, waitmax=0.0):
+def wait_barrier(distref=0.0, timeout=0.0):
     us = UltrasonicSensor()
     pathclear_t = 0.0
 
@@ -110,7 +110,7 @@ def wait_barrier(distref=0.0, waitmax=0.0):
         if us.dist_cm < distref and pathclear_t:
             pathclear_t = 0.0
 
-        if pathclear_t and (time.time() - pathclear_t) > waitmax:
+        if pathclear_t and (time.time() - pathclear_t) > timeout:
             return
 
         time.sleep(0.03)
@@ -128,7 +128,8 @@ if __name__ == "__main__":
     parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )           # Reflexionswert auf Hintergrund
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )            # Reflexionswert auf Linie
     parser.add_argument( "-distref", dest="distref", type=float, default=20.0 )         # Abstand in cm
-    parser.add_argument( "-waitmax", dest="waitmax", type=float, default=0.0 )          # Maximale Zuckelzeit in Sekunden
+    parser.add_argument( "-Vtremble", dest="Vtremble", type=float, default=0.0 )        # Zuckelgrenze (Geschwindigkeit)
+    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.0 )          # Max. Wartezeit (Zuckeln/PATHCLEAR) in Sekunden
     parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )    # Verlaengerung der Zyklusdauer in Sekunden
     parser.add_argument( "-lKp", dest="lKp", type=float, default=3.5 )
     parser.add_argument( "-lKi", dest="lKi", type=float, default=0.0 )
@@ -138,4 +139,4 @@ if __name__ == "__main__":
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     args = parser.parse_args( sys.argv[1:] )
 
-    follow_line(args.Vref, args.colmax, args.colmin, args.distref, args.waitmax, args.cycledelay, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
+    follow_line(args.Vref, args.colmax, args.colmin, args.distref, args.Vtremble, args.timeout, args.cycledelay, args.lKp, args.lKi, args.lKd, args.dKp, args.dKi, args.dKd)
