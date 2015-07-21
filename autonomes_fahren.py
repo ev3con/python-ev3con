@@ -1,5 +1,5 @@
 # autonomes_fahren.py - Automatische Linienverfolung unter Wahrung des Abstandes zum Vordemann oder Hindernis
-# 2015-07-15 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-20 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse
 from ev3.ev3dev import *
@@ -49,8 +49,8 @@ def follow_line(Vref=0.0, colmax=0.0, colmin=0.0, distref=0.0, Vtremble=0.0, tim
     led.right.color = LED.COLOR.GREEN
 
     try:
-        ml.run_forever(Vref, speed_regulation=True)
-        mr.run_forever(Vref, speed_regulation=True)
+        ml.run_forever((-1) * Vref, speed_regulation=True)
+        mr.run_forever((-1) * Vref, speed_regulation=True)
 
         while True:
             cycle_t = time.time()
@@ -125,7 +125,7 @@ def stop_all_motors():
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
-    parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )           # Reflexionswert auf Hintergrund
+    parser.add_argument( "-colmax", dest="colmax", type=float, default=88.0 )           # Reflexionswert auf Hintergrund
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )            # Reflexionswert auf Linie
     parser.add_argument( "-distref", dest="distref", type=float, default=20.0 )         # Abstand in cm
     parser.add_argument( "-Vtremble", dest="Vtremble", type=float, default=100.0 )      # Zuckelgrenze (Geschwindigkeit)

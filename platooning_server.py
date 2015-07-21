@@ -1,5 +1,5 @@
 # platooning_server.py - Externer Server fuer Betrieb des Konvoys im Platooning-Modus
-# 2015-07-15 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-20 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse, socket, netifaces
 from autonomes_fahren_platooning import tell, order
@@ -7,7 +7,7 @@ from autonomes_fahren_platooning import tell, order
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
-    parser.add_argument( "-socktimeout", dest="socktimeout", type=float, default=0.25 ) # Standardtimeout des sockets
+    parser.add_argument( "-socktimeout", dest="socktimeout", type=float, default=0.1 ) # Standardtimeout des sockets
     args = parser.parse_args( sys.argv[1:] )
 
     # Socket erstellen und an eigene IPs (inkl. Broadcast) binden
@@ -64,6 +64,8 @@ if __name__ == "__main__":
                     missing = platoon[platoon.index(addr[0])+1:]
                     missing = order(sock, ownaddr, broadcast, missing, "START:" + ":".join(missing))
                     platoon = [ comrade for comrade in platoon if not comrade in missing ]
+
+                print "Lost Connection to: " + " ".join(missing)
 
     except (KeyboardInterrupt, SystemExit):
         sock.close()

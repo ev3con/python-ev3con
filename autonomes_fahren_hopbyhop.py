@@ -1,5 +1,5 @@
 # autonomes_fahren_hopbyhop.py - Linienverfolgung des Konvoys mit Kommunikation benachbarter Fahrzeuge
-# 2015-07-15 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
+# 2015-07-20 - Hauptseminar KMS - Lukas Egge, Justus Rischke, Tobias Waurick, Patrick Ziegler - TU Dresden
 
 import sys, time, argparse, socket, netifaces
 from multiprocessing import Process
@@ -7,7 +7,7 @@ from ev3.ev3dev import Tone
 from autonomes_fahren import *
 from autonomes_fahren_platooning import tell
 
-def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=3):
+def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=7):
     for i in range(tries):
         sock.sendto(dest_mesg, (dest_addr,5005))
         try:
@@ -33,17 +33,18 @@ def propagate(sock, ownaddr, dest_addr, dest_mesg, tries=3):
             pass
         if from_mesg.startswith("ACK"):
             return tell(sock, ownaddr, dest_addr, dest_mesg)
-
     return None
+
+    return dest_addr
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser( sys.argv[0] )
     parser.add_argument( "-Vref", dest="Vref", type=float, default=350 )
-    parser.add_argument( "-colmax", dest="colmax", type=float, default=63.0 )           # Reflexionswert auf Hintergrund
+    parser.add_argument( "-colmax", dest="colmax", type=float, default=88.0 )           # Reflexionswert auf Hintergrund
     parser.add_argument( "-colmin", dest="colmin", type=float, default=7.0 )            # Reflexionswert auf Linie
     parser.add_argument( "-distref", dest="distref", type=float, default=20.0 )         # Abstand in cm
     parser.add_argument( "-Vtremble", dest="Vtremble", type=float, default=100.0 )      # Zuckelgrenze (Geschwindigkeit)
-    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.5 )          # Max. Wartezeit (Zuckeln/PATHCLEAR) in Sekunden
+    parser.add_argument( "-timeout", dest="timeout", type=float, default=0.25 )         # Max. Wartezeit (Zuckeln/PATHCLEAR) in Sekunden
     parser.add_argument( "-cycledelay", dest="cycledelay", type=float, default=0.0 )    # Verlaengerung der Zyklusdauer in Sekunden
     parser.add_argument( "-lKp", dest="lKp", type=float, default=3.5 )
     parser.add_argument( "-lKi", dest="lKi", type=float, default=0.0 )
@@ -52,7 +53,7 @@ if __name__ == "__main__":
     parser.add_argument( "-dKi", dest="dKi", type=float, default=0.0 )
     parser.add_argument( "-dKd", dest="dKd", type=float, default=0.0 )
     parser.add_argument( "-iface", dest="iface", type=str, default="wlan0" )
-    parser.add_argument( "-socktimeout", dest="socktimeout", type=float, default=0.25 ) # Standardtimeout des sockets
+    parser.add_argument( "-socktimeout", dest="socktimeout", type=float, default=0.1 )  # Standardtimeout des sockets
     parser.add_argument( "-start_idle", dest="start_idle", action="store_true", default=False )
     args = parser.parse_args( sys.argv[1:] )
 
@@ -125,6 +126,7 @@ if __name__ == "__main__":
                 elif mesg[0] == "LOST" and frontaddr == mesg[1]:
                     sock.sendto("ACK", (addr[0],5005))
                     frontaddr = addr[0]
+                    hupe.play(6000,250)
 
                 elif mesg[0] == "WHOS" and backaddr == None:
                     sock.sendto("ACK", (addr[0],5005))
