@@ -109,6 +109,8 @@ if __name__ == "__main__":
 
     try:
         while True:
+            missing = []
+
             # Nachricht empfangen
             try:
                 mesg, addr = sock.recvfrom(255)
