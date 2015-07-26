@@ -109,8 +109,6 @@ if __name__ == "__main__":
 
     try:
         while True:
-            missing = []
-
             # Nachricht empfangen
             try:
                 mesg, addr = sock.recvfrom(255)
@@ -164,9 +162,6 @@ if __name__ == "__main__":
 
                 elif mesg[0] == "QUIT":
                     sys.exit(0)
-
-                if missing:
-                    hupe.play(6000,250)
 
             # Steuerungsprozess ggf. mit Warteprozess austauschen, wenn Hindernis vorhanden
             if not p.is_alive():
